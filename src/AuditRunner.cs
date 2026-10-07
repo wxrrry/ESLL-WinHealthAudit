@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WinHealthAudit
@@ -37,7 +37,7 @@ namespace WinHealthAudit
                 }
                 catch (Exception ex)
                 {
-                    var failed = new CheckResult(check.Name);
+                    var failed = new CheckResult(check.Name, "the check threw an exception before it could finish");
                     failed.Fail("Check aborted: " + ex.Message, ex.GetType().FullName);
                     results.Add(failed);
                 }

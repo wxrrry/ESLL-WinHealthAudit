@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using WinHealthAudit.Helpers;
@@ -13,7 +13,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "Formatted WMI performance counters: CPU, DPC, interrupts, memory, pools, queues");
 
             DescribeCpu(result);
             DescribeMemory(result);
@@ -52,7 +52,9 @@ namespace WinHealthAudit.Checks
 
                     if (total >= 95)
                     {
-                        result.Warn("CPU was fully saturated at sampling time", total + "% busy on all logical processors");
+                        result.Warn("CPU was fully saturated at sampling time", total + "% busy on all logical processors",
+                            "perf.cpu-saturated", "Win32_PerfFormattedData_PerfProc_Processor % Processor Time",
+                            "close CPU hogs (transcoders, launchers, downloads) before playing - sustained 100% means stutter");
                     }
 
                     continue;
@@ -62,14 +64,18 @@ namespace WinHealthAudit.Checks
                 {
                     result.Warn(string.Format(CultureInfo.InvariantCulture,
                         "Deferred procedure calls take {0}% of logical processor {1}", dpc, name),
-                        "a driver monopolises the core - this shows up as input lag and frame spikes");
+                        "a driver monopolises the core - this shows up as input lag and frame spikes",
+                        "perf.dpc", "Win32_PerfFormattedData_PerfProc_Interrupts DPCs per logical processor",
+                        "find the driver hogging the core - high DPC usually comes from network, audio or storage drivers; update them");
                 }
 
                 if (interrupt >= 15)
                 {
                     result.Warn(string.Format(CultureInfo.InvariantCulture,
                         "Interrupts take {0}% of logical processor {1}", interrupt, name),
-                        "interrupt storms come from drivers and peripherals");
+                        "interrupt storms come from drivers and peripherals",
+                        "perf.interrupts", "Win32_PerfFormattedData_PerfProc_Interrupts Interrupts per logical processor",
+                        "update chipset, storage and network drivers and unplug unused USB devices - storms usually come from a faulty peripheral");
                 }
 
                 if (dpc > 0 || interrupt > 0)
@@ -115,18 +121,24 @@ namespace WinHealthAudit.Checks
             {
                 result.Warn("Little free memory left",
                     string.Format(CultureInfo.InvariantCulture, "{0} of {1} available",
-                        Format.Bytes(available), Format.Bytes(total)));
+                        Format.Bytes(available), Format.Bytes(total)),
+                    "perf.low-memory", "Win32_OperatingSystem FreePhysicalMemory",
+                    "close browser tabs and background apps - if this repeats often, the machine needs more RAM");
             }
 
             if (nonPaged > 1024UL * 1024 * 1024)
             {
                 result.Warn("Non-paged pool is larger than 1 GB",
-                    Format.Bytes(nonPaged) + " - a driver is probably leaking kernel memory");
+                    Format.Bytes(nonPaged) + " - a driver is probably leaking kernel memory",
+                    "perf.pool-nonpaged", "Win32_PerfFormattedData_PerfProc_Memory PoolNonpaged Bytes",
+                    "reboot to confirm; if it grows again, update drivers one by one (network and printer drivers are the usual leakers)");
             }
 
             if (pageIns > 1000)
             {
-                result.Warn("The system is paging heavily", pageIns + " pages/s read from disk");
+                result.Warn("The system is paging heavily", pageIns + " pages/s read from disk",
+                    "perf.paging", "Win32_PerfFormattedData_PerfProc_Memory Pages Input/sec",
+                    "the page file is doing heavy work - add RAM or close whatever is eating memory");
             }
         }
 
@@ -157,7 +169,9 @@ namespace WinHealthAudit.Checks
 
             if (queue >= 5)
             {
-                result.Warn("Threads are waiting for a free CPU", "processor queue length is " + queue);
+                result.Warn("Threads are waiting for a free CPU", "processor queue length is " + queue,
+                    "perf.cpu-queue", "Win32_PerfFormattedData_PerfProc_System Processor Queue Length",
+                    "a persistent queue of 4+ means the CPU cannot keep up - see which processes are busiest in Task Manager");
             }
         }
 

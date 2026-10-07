@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -26,7 +26,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "Top CPU and memory processes, stopped automatic services, Run-key startup entries");
 
             var first = Snapshot();
             Thread.Sleep(SampleMilliseconds);
@@ -177,7 +177,9 @@ namespace WinHealthAudit.Checks
             if (stopped.Count > 0)
             {
                 result.Warn(stopped.Count + " automatic service(s) are stopped",
-                    Join(stopped, 10));
+                    Join(stopped, 10),
+                    "services.stopped", "Win32_Service state for services whose start mode is Automatic",
+                    "open services.msc, set each service back to Automatic and start it - or set Automatic (Delayed) if it races the boot");
             }
         }
 

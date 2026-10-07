@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using WinHealthAudit.Helpers;
 
@@ -10,7 +10,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "WMI Win32_OperatingSystem, Win32_ComputerSystem, Win32_BIOS and system uptime");
 
             var os = Wmi.First("root\\cimv2",
                 "SELECT Caption, Version, BuildNumber, InstallDate, LastBootUpTime, OSArchitecture, LocalDateTime " +

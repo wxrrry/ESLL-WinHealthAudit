@@ -11,7 +11,7 @@ A read-only Windows health report — one executable, one markdown file.
 ![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square&logo=windows&logoColor=white)
 ![runtime](https://img.shields.io/badge/runtime-.NET%20Framework%204-512BD4?style=flat-square)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white)
-![version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-1.1.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 [![build](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml/badge.svg)](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml)
 ![release](https://img.shields.io/github/v/release/wxrrry/ESLL-WinHealthAudit?style=flat-square&logo=github)
@@ -51,8 +51,13 @@ A read-only Windows health report — one executable, one markdown file.
   *Start with Windows* entry you switch on yourself).
 - **Nine checks, one severity scale.** `Info < Warning < Critical`, findings
   sorted so the worst ones sit on top, each with its source and evidence.
+- **Click a finding to open it.** Three lines appear: *what was checked*,
+  *where the finding came from* (log, event id, WMI class) and *what to do*
+  about it — advice is shown in your interface language. A filter box above
+  the list narrows it as you type; the rows are reachable with the keyboard.
 - **Black and white, keyboard-friendly window** in an Edge `--app` view —
   *Findings*, *Checks*, *Log*, report buttons, period and language pickers.
+  The logo lives in the taskbar and in the tray (open, run an audit, quit).
   No Edge? The window opens in your default browser instead.
 - **EN / RU interface.** The audit output stays in English (it is what the
   system logs say), the interface switches in Settings.
@@ -73,7 +78,7 @@ A read-only Windows health report — one executable, one markdown file.
 </p>
 
 <p align="center">
-  <em>Findings — every row carries its source, evidence and a copy button.</em>
+  <em>Findings — click a row to expand its source, what was checked and what to do.</em>
 </p>
 
 <table align="center">
@@ -215,8 +220,8 @@ flowchart LR
     F --> E
 ```
 
-- The launcher embeds `app.ps1`, `index.html`, `logo.png` and the whole
-  engine as .NET resources and unpacks them on first start.
+- The launcher embeds `app.ps1`, `index.html`, `logo.png`, `logo.ico` and the
+  whole engine as .NET resources and unpacks them on first start.
 - `app.ps1` is a tiny `TcpListener` server bound to `127.0.0.1` only —
   every fetch comes from localhost, nothing goes out.
 - The engine runs in a PowerShell job; JSON goes over stdout, progress over
@@ -276,6 +281,11 @@ MIT — see [LICENSE](LICENSE).
 находки и печатает отчёт, отсортированный по серьёзности. Ничего не меняется
 в системе: ни служба не останавливается, ни настройка не пишется, ни журнал не
 очищается.
+
+Находку можно раскрыть кликом — появятся три строки: *что проверялось*,
+*откуда взято* (журнал, код события, класс WMI) и *что делать* (совет на
+вашем языке). Над списком есть фильтр по тексту, строки доступны с клавиатуры,
+логотип — в панели задач и в трее (открыть, запустить проверку, выход).
 
 ## Что проверяется
 

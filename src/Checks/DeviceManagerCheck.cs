@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using WinHealthAudit.Helpers;
@@ -13,7 +13,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "WMI Win32_PnPEntity problem codes for devices in an error state");
 
             List<Dictionary<string, object>> devices;
 
@@ -50,7 +50,9 @@ namespace WinHealthAudit.Checks
                     "{0} - {1} (code {2})",
                     name, description, code);
 
-                result.Warn(message, Wmi.GetString(device, "PNPDeviceID"));
+                result.Warn(message, Wmi.GetString(device, "PNPDeviceID"),
+                    "devmgr.problem", "Win32_PnPEntity ConfigManagerErrorCode for devices in an error state",
+                    "open Device Manager, find the device with the yellow mark, then update, roll back or reinstall its driver");
             }
 
             return result;

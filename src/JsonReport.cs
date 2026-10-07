@@ -33,6 +33,7 @@ namespace WinHealthAudit
                 if (index > 0) builder.Append(',');
                 var result = results[index];
                 builder.Append("{\"name\":").Append(Quote(result.Name));
+                builder.Append(",\"detail\":").Append(Quote(result.Detail));
                 builder.Append(",\"findings\":").Append(result.Findings.Count.ToString(CultureInfo.InvariantCulture));
                 builder.Append(",\"notes\":").Append(result.Notes.Count.ToString(CultureInfo.InvariantCulture));
                 builder.Append('}');
@@ -50,6 +51,9 @@ namespace WinHealthAudit
                 builder.Append(",\"source\":").Append(Quote(finding.Source));
                 builder.Append(",\"message\":").Append(Quote(finding.Message));
                 builder.Append(",\"evidence\":").Append(Quote(finding.Evidence));
+                builder.Append(",\"rule\":").Append(Quote(finding.Rule));
+                builder.Append(",\"detail\":").Append(Quote(finding.Detail));
+                builder.Append(",\"advice\":").Append(Quote(finding.Advice));
                 builder.Append('}');
             }
             builder.Append("]}");

@@ -1,4 +1,4 @@
-# WinHealthAudit window - local launcher.
+﻿# WinHealthAudit window - local launcher.
 # Runs the engine in a PowerShell job, keeps progress, result and settings in
 # memory and serves the page over a loopback-only HTTP server. The window is
 # an Edge --app window, so it behaves like a desktop application.
@@ -265,6 +265,143 @@ function Open-Browser {
     }
 }
 
+# --- tray + window icon ----------------------------------------------------
+
+$script:trayIcon        = $null
+$script:trayTimer       = $null
+$script:windowIconTries = 0
+$script:windowIconSet   = $false
+$script:windowIconError = ''
+$script:quitting        = $false
+
+function Ensure-User32 {
+    if ('Wha.Native' -as [type]) { return }
+    Add-Type -Namespace Wha -Name Native -MemberDefinition @'
+[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+public static extern IntPtr LoadImage(IntPtr hInst, string path, uint type, int cx, int cy, uint flags);
+[DllImport("user32.dll")]
+public static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+[DllImport("user32.dll", SetLastError = true)]
+public static extern IntPtr SetClassLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+[DllImport("user32.dll")]
+public static extern bool SetForegroundWindow(IntPtr hWnd);
+[DllImport("user32.dll")]
+public static extern bool ShowWindow(IntPtr hWnd, int cmd);
+'@
+}
+
+function Resolve-IconPath {
+    $local = Join-Path $guiDir 'logo.ico'
+    if (Test-Path $local) { return $local }
+    $parent = Join-Path $rootDir 'logo.ico'
+    if (Test-Path $parent) { return $parent }
+    return $null
+}
+
+function Find-AppWindow {
+    foreach ($proc in @(Get-Process msedge -ErrorAction SilentlyContinue)) {
+        if ($proc.MainWindowHandle -eq [IntPtr]::Zero) { continue }
+        if ($proc.MainWindowTitle -like '*WinHealthAudit*') { return $proc.MainWindowHandle }
+    }
+    return [IntPtr]::Zero
+}
+
+function Show-AppWindow {
+    # Called from tray handlers: never goes through the HTTP server, because
+    # the server thread is the one pumping these messages.
+    try {
+        $hwnd = Find-AppWindow
+        if ($hwnd -ne [IntPtr]::Zero) {
+            Ensure-User32
+            [Wha.Native]::ShowWindow($hwnd, 9) | Out-Null
+            [Wha.Native]::SetForegroundWindow($hwnd) | Out-Null
+        } else {
+            Open-Browser
+        }
+    } catch { Open-Browser }
+}
+
+function Set-WindowIcon {
+    # Best effort: if the window or the icon cannot be found, the app simply
+    # keeps the default Edge icon.
+    if ($script:windowIconSet) { return $true }
+    $script:windowIconTries++
+    if ($script:windowIconTries -gt 60) { return $true }
+
+    $iconPath = Resolve-IconPath
+    if (-not $iconPath) { return $true }
+
+    try {
+        $target = Find-AppWindow
+        if ($target -eq [IntPtr]::Zero) { return $false }
+
+        Ensure-User32
+        $handle = [Wha.Native]::LoadImage([IntPtr]::Zero, $iconPath, 1, 0, 0, 0x50)
+        if ($handle -eq [IntPtr]::Zero) { throw 'LoadImage returned null' }
+
+        [Wha.Native]::SendMessage($target, 0x80, [IntPtr]::Zero, $handle) | Out-Null
+        [Wha.Native]::SendMessage($target, 0x80, [IntPtr]1, $handle) | Out-Null
+        [Wha.Native]::SetClassLongPtr($target, -14, $handle) | Out-Null
+        [Wha.Native]::SetClassLongPtr($target, -34, $handle) | Out-Null
+        $script:windowIconSet = $true
+        return $true
+    } catch {
+        $script:windowIconError = $_.Exception.ToString()
+        return $true
+    }
+}
+
+function Start-Tray {
+    # Runs even with -NoBrowser: the launcher opens the window itself and the
+    # server stays responsible for the tray icon.
+    try {
+        Add-Type -AssemblyName System.Windows.Forms
+        Add-Type -AssemblyName System.Drawing
+
+        $iconPath = Resolve-IconPath
+        if (-not $iconPath) { return }
+
+        $ru  = ($script:settings.lang -eq 'ru')
+        $say = { param($ruText, $enText) if ($ru) { $ruText } else { $enText } }
+
+        $menu = New-Object System.Windows.Forms.ContextMenuStrip
+        $openItem = New-Object System.Windows.Forms.ToolStripMenuItem((& $say 'Открыть' 'Open'))
+        $runItem  = New-Object System.Windows.Forms.ToolStripMenuItem((& $say 'Запустить проверку' 'Run audit'))
+        $quitItem = New-Object System.Windows.Forms.ToolStripMenuItem((& $say 'Выход' 'Quit'))
+        [void]$menu.Items.AddRange(@($openItem, $runItem, (New-Object System.Windows.Forms.ToolStripSeparator), $quitItem))
+
+        $openItem.Add_Click({ Show-AppWindow })
+        $runItem.Add_Click({ Start-Run $script:days })
+        $quitItem.Add_Click({
+            $script:quitting = $true
+            try { if ($listener) { $listener.Stop() } } catch { }
+            try {
+                foreach ($proc in @(Get-Process msedge -ErrorAction SilentlyContinue)) {
+                    if ($proc.MainWindowHandle -ne [IntPtr]::Zero -and $proc.MainWindowTitle -like '*WinHealthAudit*') {
+                        $proc.CloseMainWindow() | Out-Null
+                    }
+                }
+            } catch { }
+        })
+
+        $icon = New-Object System.Drawing.Icon($iconPath)
+        $notify = New-Object System.Windows.Forms.NotifyIcon
+        $notify.Icon = $icon
+        $notify.Text = 'WinHealthAudit'
+        $notify.ContextMenuStrip = $menu
+        $notify.Visible = $true
+        $notify.Add_MouseDoubleClick({ Show-AppWindow })
+
+        $script:trayIcon  = $notify
+        $script:trayTimer = New-Object System.Windows.Forms.Timer
+        $script:trayTimer.Interval = 250
+        $script:trayTimer.Add_Tick({ Set-WindowIcon | Out-Null })
+        $script:trayTimer.Start()
+    } catch {
+        try { Add-Content -Path (Join-Path $settingsDir 'tray.log') -Value $_.Exception.ToString() } catch { }
+    }
+}
+
 function Handle-Request($stream, [string]$method, [string]$target) {
     $path = $target
     $query = ''
@@ -287,6 +424,16 @@ function Handle-Request($stream, [string]$method, [string]$target) {
         }
 
         '/api/state' { Send-Json $stream (Get-State) }
+
+        '/api/tray' {
+            Send-Json $stream ([pscustomobject]@{
+                tray        = [bool]$script:trayIcon
+                trayText    = if ($script:trayIcon) { $script:trayIcon.Text } else { '' }
+                windowIcon  = [bool]$script:windowIconSet
+                iconError   = [string]$script:windowIconError
+                iconTries   = [int]$script:windowIconTries
+            })
+        }
 
         '/api/settings' {
             if ($query) { Write-Settings $query }
@@ -383,9 +530,22 @@ if (-not $listener) {
 
 Write-Host "WinHealthAudit \\ ESLL - window server on $url  (ctrl+c to stop)"
 Open-Browser
+Start-Tray
 
 try {
     while ($true) {
+        # Poll instead of a blocking accept: the gap is where the tray menu,
+        # the icon timer and the quit flag get their turn on the same thread.
+        while ($true) {
+            if ($script:quitting) { break }
+            $pending = $false
+            try { $pending = $listener.Pending() } catch { break }
+            if ($pending) { break }
+            if ($script:trayTimer) { [System.Windows.Forms.Application]::DoEvents() }
+            Start-Sleep -Milliseconds 80
+        }
+        if ($script:quitting) { break }
+
         $client = $listener.AcceptTcpClient()
         $reader = $null
         try {
@@ -405,7 +565,15 @@ try {
             $client.Close()
         }
     }
+} catch {
+    if (-not $script:quitting) { Write-Host "server stopped: $($_.Exception.Message)" }
 } finally {
+    if ($script:trayTimer) {
+        try { $script:trayTimer.Stop() } catch { }
+    }
+    if ($script:trayIcon) {
+        try { $script:trayIcon.Visible = $false; $script:trayIcon.Dispose() } catch { }
+    }
     if ($script:job) {
         Stop-Job -Job $script:job -ErrorAction SilentlyContinue
         Remove-Job -Job $script:job -Force -ErrorAction SilentlyContinue

@@ -50,6 +50,7 @@ echo [2/2] WinHealthAudit.exe (the app)...
     /res:"%ROOT%gui\app.ps1",app.ps1 ^
     /res:"%ROOT%gui\index.html",index.html ^
     /res:"%ROOT%gui\logo.png",logo.png ^
+    /res:"%ROOT%gui\logo.ico",logo.ico ^
     /res:"%ROOT%bin\WinHealthAudit.Core.exe",WinHealthAudit.Core.exe ^
     "%ROOT%src\Launcher\Program.cs"
 

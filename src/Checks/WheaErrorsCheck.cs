@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
@@ -50,13 +50,15 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "WHEA-Logger hardware error events with device, rate and time details");
 
             List<WheaEvent> events = ReadEvents(context);
             if (events == null)
             {
                 result.Warn("Cannot read WHEA events from the System log",
-                    "run from an elevated prompt to read protected logs");
+                    "run from an elevated prompt to read protected logs",
+                    "whea.unreadable", "System log query filtered to provider WHEA-Logger",
+                    "rerun the audit from an elevated prompt - hardware errors are the most important thing to check");
                 return result;
             }
 
@@ -121,7 +123,9 @@ namespace WinHealthAudit.Checks
             {
                 result.Fail(string.Format(CultureInfo.InvariantCulture,
                     "{0} uncorrected hardware error record(s) in the window", uncorrected),
-                    "uncorrected errors mean work was lost; check power supply, memory and board firmware");
+                    "uncorrected errors mean work was lost; check power supply, memory and board firmware",
+                    "whea.uncorrected", "WHEA-Logger error records with corrected flag = false",
+                    "run a memory test (MemTest86) and check the power supply - uncorrected errors mean data was already lost");
             }
 
             if (peak.Count >= 600)
@@ -129,14 +133,18 @@ namespace WinHealthAudit.Checks
                 result.Fail(string.Format(CultureInfo.InvariantCulture,
                     "WHEA error storm: {0} events/min at {1:HH:mm:ss} ({2:0.0} per second)",
                     peak.Count, peak.Time, peak.Count / 60.0),
-                    top + " - sustained correctable link errors cause stutter; update firmware or force the PCIe link to Gen4");
+                    top + " - sustained correctable link errors cause stutter; update firmware or force the PCIe link to Gen4",
+                    "whea.storm", "WHEA-Logger error records grouped per minute",
+                    "update board BIOS and GPU firmware; if storms continue, force the GPU PCIe link to Gen4 in firmware");
             }
             else if (events.Count > 0)
             {
                 result.Warn(string.Format(CultureInfo.InvariantCulture,
                     "{0} hardware error record(s) in the last {1} day(s)", events.Count, context.Options.WindowDays),
                     top + " - peak " + peak.Count + "/min at " +
-                    peak.Time.ToString("HH:mm:ss") + "; if these come from the GPU root port, update firmware or force Gen4");
+                    peak.Time.ToString("HH:mm:ss") + "; if these come from the GPU root port, update firmware or force Gen4",
+                    "whea.correctable", "WHEA-Logger error records over the selected window",
+                    "update firmware and reseat the GPU - persistent correctable link errors eventually turn into uncorrected ones");
             }
 
             return result;

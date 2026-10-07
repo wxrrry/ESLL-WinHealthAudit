@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -16,7 +16,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "WMI disk health, logical-disk free space, page file settings and I/O counters");
 
             DescribePhysicalDisks(result);
             DescribeVolumes(result);
@@ -67,11 +67,15 @@ namespace WinHealthAudit.Checks
 
                 if (healthRaw == "1" || healthRaw == "Warning")
                 {
-                    result.Warn("Disk reports health 'Warning'", name + " (" + health + ")");
+                    result.Warn("Disk reports health 'Warning'", name + " (" + health + ")",
+                        "disk.health-warning", "MSFT_Disk / physical disk health status via Storage Management WMI",
+                        "back up important data now and plan a replacement - a disk that reports Warning is close to failing");
                 }
                 else if (healthRaw == "2" || healthRaw == "Unhealthy")
                 {
-                    result.Fail("Disk reports health 'Unhealthy'", name + " (" + health + ")");
+                    result.Fail("Disk reports health 'Unhealthy'", name + " (" + health + ")",
+                        "disk.health-unhealthy", "MSFT_Disk / physical disk health status via Storage Management WMI",
+                        "immediate: back up your data from this disk and replace it - Unhealthy means failure is imminent");
                 }
             }
         }
@@ -166,13 +170,17 @@ namespace WinHealthAudit.Checks
                 {
                     result.Fail(string.Format(CultureInfo.InvariantCulture,
                         "Volume {0} is almost full ({1} free)", drive.Name.TrimEnd('\\'), Format.Percent(free, total)),
-                        "Windows needs free space for updates, paging and temporary files");
+                        "Windows needs free space for updates, paging and temporary files",
+                        "disk.full", "Win32_LogicalDisk free space",
+                        "free up at least 10-15% of this volume - move large files elsewhere or run Storage Sense (Settings > System > Storage)");
                 }
                 else if (percent < 20)
                 {
                     result.Warn(string.Format(CultureInfo.InvariantCulture,
                         "Volume {0} is running low ({1} free)", drive.Name.TrimEnd('\\'), Format.Percent(free, total)),
-                        "under 20% free");
+                        "under 20% free",
+                        "disk.low", "Win32_LogicalDisk free space",
+                        "clear temporary files and move big data to another drive - below 20% free, updates and paging get slow");
                 }
             }
         }
@@ -200,7 +208,9 @@ namespace WinHealthAudit.Checks
             }
             catch (Exception ex)
             {
-                result.Warn("Cannot read the page file configuration", ex.Message);
+                result.Warn("Cannot read the page file configuration", ex.Message,
+                    "disk.pagefile-unreadable", "Win32_PageFileSetting via WMI",
+                    "run the audit from an elevated prompt so page file settings can be read");
             }
 
             result.Note("Page file: " + (autoManaged
@@ -237,7 +247,9 @@ namespace WinHealthAudit.Checks
                         size > 0
                             ? string.Format(CultureInfo.InvariantCulture, "{0} - stale file left over from an earlier configuration",
                                 Format.Bytes(size))
-                            : "stale file left over from an earlier configuration (size needs admin rights to read)");
+                            : "stale file left over from an earlier configuration (size needs admin rights to read)",
+                        "disk.pagefile-orphan", "page file files found on volumes that are not configured in Win32_PageFileSetting",
+                        "open System Properties > Advanced > Performance Settings > Advanced > Virtual memory, turn on automatic management or remove the stale pagefile.sys");
                 }
             }
 
@@ -292,14 +304,18 @@ namespace WinHealthAudit.Checks
                 {
                     result.Warn(string.Format(CultureInfo.InvariantCulture,
                         "Disk {0} was {1}% busy at sampling time", name, busy),
-                        "a saturated disk stalls the games and recorders reading from it");
+                        "a saturated disk stalls the games and recorders reading from it",
+                        "disk.busy", "Win32_PerfFormattedData_PerfDisk_PhysicalDisk % Idle Time",
+                        "move downloads, captures and installs to another drive while playing - a busy system disk causes stutter");
                 }
 
                 if (queue >= 4)
                 {
                     result.Warn(string.Format(CultureInfo.InvariantCulture,
                         "Disk {0} queue length is {1}", name, queue),
-                        "I/O requests are stacking up");
+                        "I/O requests are stacking up",
+                        "disk.queue", "Win32_PerfFormattedData_PerfDisk_PhysicalDisk Current Disk Queue Length",
+                        "a queue of 4+ at idle means the disk cannot keep up - check for background scanners, indexers or a dying drive");
                 }
             }
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Win32;
@@ -14,7 +14,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "Pending reboot markers, power scheme, Defender status and activation state");
 
             DescribeRebootPending(result);
             DescribePowerScheme(result);
@@ -42,7 +42,9 @@ namespace WinHealthAudit.Checks
 
             if (reasons.Count > 0)
             {
-                result.Warn("A reboot is pending", string.Join(", ", reasons.ToArray()));
+                result.Warn("A reboot is pending", string.Join(", ", reasons.ToArray()),
+                    "state.pending-reboot", "PendingFileRenameOperations, Component Based Servicing and Windows Update registry keys",
+                    "reboot now - updates and driver installs are only half-applied until then");
             }
 
             var renames = PendingFileRenames();
@@ -165,12 +167,16 @@ namespace WinHealthAudit.Checks
 
             if (!realtime)
             {
-                result.Fail("Real-time protection is off", "the machine is unprotected until it is restored");
+                result.Fail("Real-time protection is off", "the machine is unprotected until it is restored",
+                    "state.defender-off", "Win32_MpComputerStatus RealTimeProtectionEnabled",
+                    "turn protection back on in Windows Security (unless another antivirus takes its place)");
             }
 
             if (signatureAge > 7)
             {
-                result.Warn("Antivirus signatures are older than a week", signatureAge + " days old");
+                result.Warn("Antivirus signatures are older than a week", signatureAge + " days old",
+                    "state.defender-signatures", "Win32_MpComputerStatus AntivirusSignatureLastUpdated",
+                    "open Windows Security > Virus & threat protection > Check for protection updates");
             }
 
             if (fullScanAge > 3650)
@@ -213,7 +219,9 @@ namespace WinHealthAudit.Checks
                 }
                 else
                 {
-                    result.Fail(name + ": not activated", "license status code " + status);
+                    result.Fail(name + ": not activated", "license status code " + status,
+                        "state.activation", "SoftwareLicensingProduct LicenseStatus",
+                        "Settings > System > Activation - run the troubleshooter there or enter your product key");
                 }
             }
         }

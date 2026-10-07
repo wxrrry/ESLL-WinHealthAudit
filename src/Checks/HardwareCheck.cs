@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Microsoft.Win32;
@@ -12,7 +12,7 @@ namespace WinHealthAudit.Checks
 
         public CheckResult Run(AuditContext context)
         {
-            var result = new CheckResult(Name);
+            var result = new CheckResult(Name, "WMI Win32_Processor, Win32_PhysicalMemory, Win32_VideoController and driver dates");
             DescribeProcessor(result);
             DescribeMemory(result);
             DescribeBoardAndBios(result);
@@ -80,7 +80,9 @@ namespace WinHealthAudit.Checks
                     result.Warn("Memory runs below its rated speed",
                         string.Format(CultureInfo.InvariantCulture,
                             "configured {0} MT/s vs rated {1} MT/s - enable the memory profile in firmware if you want the rated speed",
-                            configuredSpeed, ratedSpeed));
+                            configuredSpeed, ratedSpeed),
+                        "hw.memory-speed", "Win32_PhysicalMemory ConfiguredClockSpeed vs RatedSpeed",
+                        "enter firmware/UEFI and enable the XMP or EXPO profile for this memory kit");
                 }
             }
         }
@@ -107,7 +109,9 @@ namespace WinHealthAudit.Checks
                     result.Warn("Board firmware is older than two years",
                         string.Format(CultureInfo.InvariantCulture,
                             "v{0} from {1:yyyy-MM-dd} - new firmware revisions usually fix PCIe link and memory training issues",
-                            version, release.Value));
+                            version, release.Value),
+                        "hw.firmware-age", "Win32_BIOS release date",
+                        "flash the latest board firmware from the motherboard vendor's site - it usually fixes PCIe link and memory training bugs");
                 }
             }
             else
@@ -146,14 +150,18 @@ namespace WinHealthAudit.Checks
 
                 if (status.Length > 0 && !string.Equals(status, "OK", StringComparison.OrdinalIgnoreCase))
                 {
-                    result.Warn("Video adapter reports status '" + status + "'", pnp);
+                    result.Warn("Video adapter reports status '" + status + "'", pnp,
+                        "hw.gpu-status", "Win32_VideoController status via PNPDeviceID",
+                        "update or reinstall the GPU driver (clean install from nvidia.com / amd.com); check the card is seated in the slot");
                 }
 
                 if (driverDate.HasValue && DateTime.Now - driverDate.Value > TimeSpan.FromDays(540))
                 {
                     result.Warn("Video driver is more than 18 months old",
                         string.Format(CultureInfo.InvariantCulture, "{0}: driver dated {1:yyyy-MM-dd}",
-                            name, driverDate.Value));
+                            name, driverDate.Value),
+                        "hw.gpu-driver-age", "Win32_VideoController DriverDate",
+                        "install the current driver from the vendor - old drivers lose game-ready optimisations and bug fixes");
                 }
             }
         }

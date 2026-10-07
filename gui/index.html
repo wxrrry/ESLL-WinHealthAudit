@@ -1,8 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>WinHealthAudit \\ ESLL</title>
+<link rel="icon" type="image/png" href="/logo.png">
 <style>
   :root {
     --bg: #000;
@@ -229,13 +230,15 @@
 
   .row {
     display: grid;
-    grid-template-columns: 116px 1fr 76px;
+    grid-template-columns: 116px 1fr 96px;
     gap: 26px;
     padding: 17px 6px;
     border-bottom: 1px solid rgba(255,255,255,.08);
     align-items: baseline;
+    cursor: pointer;
   }
   .row:hover { background: rgba(255,255,255,.045); }
+  .row:focus-visible { outline: 1px solid rgba(255,255,255,.45); outline-offset: -1px; }
 
   .sev { font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--faint); }
   .row.critical .sev { color: #fff; }
@@ -245,6 +248,21 @@
   .msg { font-size: 15px; color: var(--fg); }
   .note { font-size: 13px; color: var(--dim); margin-top: 4px; max-width: 92ch; }
 
+  .detail {
+    display: none;
+    margin-top: 13px;
+    padding-top: 11px;
+    border-top: 1px solid rgba(255,255,255,.09);
+  }
+  .row.open .detail { display: block; }
+  .dline { display: grid; grid-template-columns: 176px 1fr; gap: 18px; padding: 5px 0; }
+  .dk { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: var(--faint); padding-top: 3px; }
+  .dv { font-size: 13px; color: var(--dim); max-width: 92ch; }
+
+  .act { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+  .chev { color: var(--faint); font-size: 12px; transition: transform .18s ease; }
+  .row.open .chev { transform: rotate(90deg); }
+
   .copy {
     background: none; border: 0; font: inherit;
     font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
@@ -252,6 +270,18 @@
   }
   .row:hover .copy { color: var(--faint); }
   .copy:hover { color: var(--fg) !important; }
+
+  .findbar { display: flex; align-items: center; gap: 16px; padding: 12px 6px 6px; }
+  .find-input {
+    flex: 1; min-width: 0; max-width: 340px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--hair); border-radius: 999px;
+    color: var(--fg); font: inherit; font-size: 13px;
+    padding: 7px 16px;
+  }
+  .find-input::placeholder { color: var(--faint); }
+  .find-input:focus { outline: none; border-color: rgba(255,255,255,.45); }
+  .find-count { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); font-variant-numeric: tabular-nums; }
 
   .hint { padding: 26px 6px; color: var(--faint); font-size: 14px; }
 
@@ -418,7 +448,14 @@
     </div>
 
     <main class="content">
-      <div class="list" id="page-findings"></div>
+      <div class="list" id="page-findings">
+        <div class="findbar hidden" id="findbar">
+          <input class="find-input" id="find-filter" type="search" autocomplete="off" spellcheck="false"
+                 data-i18n-ph="find.filter" placeholder="filter findings…">
+          <div class="find-count" id="find-count"></div>
+        </div>
+        <div id="find-rows"></div>
+      </div>
       <div class="checks hidden" id="page-checks"></div>
       <div class="log hidden" id="page-log"></div>
     </main>
@@ -493,6 +530,11 @@
       "val.admin": "administrator",
       "val.noadmin": "no admin rights",
       "common.copy": "copy",
+      "find.filter": "filter findings…",
+      "find.count": "{n} / {m}",
+      "det.checked": "What was checked",
+      "det.where": "Where from",
+      "det.do": "What to do",
       "days.n": "{n} days",
       "chip.n": "{n} d",
       "hint.idle": "press run audit to check this machine.",
@@ -550,6 +592,11 @@
       "val.admin": "администратор",
       "val.noadmin": "без админ-прав",
       "common.copy": "копировать",
+      "find.filter": "фильтр находок…",
+      "find.count": "{n} / {m}",
+      "det.checked": "Что проверялось",
+      "det.where": "Откуда взято",
+      "det.do": "Что делать",
       "days.n": "{n} дней",
       "chip.n": "{n} дн",
       "hint.idle": "нажмите запустить проверку этого компьютера.",
@@ -586,7 +633,66 @@
       "tut.2.t": "Читайте находки",
       "tut.2.d": "Находки отсортированы от худших; пилюли справа фильтруют по серьёзности. <b>«Проверки»</b> — что смотрел каждый тест, <b>«Журнал»</b> — прогресс в реальном времени.",
       "tut.3.t": "Сохраните отчёт",
-      "tut.3.d": "<b>Откройте</b> или <b>сохраните</b> markdown-отчёт, скопируйте сводку для форума. В <b>«Настройках»</b> — язык, окно по умолчанию и автозапуск."
+      "tut.3.d": "<b>Откройте</b> или <b>сохраните</b> markdown-отчёт, скопируйте сводку для форума. В <b>«Настройках»</b> — язык, окно по умолчанию и автозапуск.",
+
+      "adv.disk.health-warning": "сразу сделайте резервную копию и планируйте замену — диск со статусом Warning близок к отказу",
+      "adv.disk.health-unhealthy": "немедленно скопируйте данные и замените диск — Unhealthy означает скорый отказ",
+      "adv.disk.full": "освободите 10–15% тома — перенесите файлы на другой диск или включите Память (Параметры → Система → Память)",
+      "adv.disk.low": "удалите временные файлы и перенесите большие данные на другой диск: меньше 20% свободного места замедляет обновления и подкачку",
+      "adv.disk.pagefile-unreadable": "запустите проверку от имени администратора, чтобы прочитать настройки файла подкачки",
+      "adv.disk.pagefile-orphan": "Свойства системы → Дополнительно → Быстродействие → Дополнительно → Память: включите автоматическое управление или удалите лишний pagefile.sys",
+      "adv.disk.busy": "перенесите загрузки, записи и установки на другой диск: занятый системный диск вызывает рывки",
+      "adv.disk.queue": "очередь 4+ в простое — диск не справляется: проверьте фоновые сканеры, индексацию или умирающий диск",
+      "adv.hw.memory-speed": "зайдите в UEFI и включите профиль XMP или EXPO для этой памяти",
+      "adv.hw.firmware-age": "прошейте свежую прошивку материнской платы с сайта производителя — обычно именно она чинит PCIe и обучение памяти",
+      "adv.hw.gpu-status": "обновите или переустановите драйвер GPU (чистая установка с nvidia.com / amd.com), проверьте посадку карты в слот",
+      "adv.hw.gpu-driver-age": "установите актуальный драйвер с сайта производителя: старые теряют игровые оптимизации и исправления",
+      "adv.devmgr.problem": "откройте Диспетчер устройств, найдите устройство с жёлтым значком и обновите, откатите или переустановите его драйвер",
+      "adv.services.stopped": "в services.msc верните службы в Авто и запустите их — либо поставьте «Авто (с задержкой)», если они не успевают при загрузке",
+      "adv.perf.cpu-saturated": "закройте CPU-пожирателей (кодеры, лаунчеры, загрузки) перед игрой: постоянные 100% дают рывки",
+      "adv.perf.dpc": "найдите драйвер, занявшее ядро — обычно это сеть, звук или накопители; обновите их",
+      "adv.perf.interrupts": "обновите драйверы чипсета, хранения и сети и отключите ненужные USB-устройства: штормы обычно идут от неисправного периферийного устройства",
+      "adv.perf.low-memory": "закройте вкладки браузера и фоновые приложения; если повторяется часто — нужен больший объём RAM",
+      "adv.perf.pool-nonpaged": "перезагрузитесь, чтобы подтвердить; если растёт снова — обновляйте драйверы по одному (обычно виноваты сеть и принтеры)",
+      "adv.perf.paging": "файл подкачки работает на пределе — добавьте RAM или закройте то, что ест память",
+      "adv.perf.cpu-queue": "постоянная очередь 4+ означает, что CPU не справляется — посмотрите самые занятые процессы в Диспетчере задач",
+      "adv.whea.unreadable": "перезапустите проверку от имени администратора — аппаратные ошибки важнее всего остального",
+      "adv.whea.uncorrected": "прогоните тест памяти (MemTest86) и проверьте блок питания: некорректируемые ошибки уже потеряли данные",
+      "adv.whea.storm": "обновите BIOS и прошивку GPU; если штормы продолжаются — принудительно поставьте PCIe Gen4 для слота GPU",
+      "adv.whea.correctable": "обновите прошивку и переустановите GPU: постоянные ошибки связи со временем становятся некорректируемыми",
+      "adv.state.pending-reboot": "перезагрузитесь сейчас — обновления и установки драйверов применены лишь наполовину",
+      "adv.state.defender-off": "включите защиту в Безопасности Windows (если её не берёт на себя другой антивирус)",
+      "adv.state.defender-signatures": "Безопасность Windows → Защита от вирусов → Проверить обновления защиты",
+      "adv.state.activation": "Параметры → Система → Активация — запустите средство устранения неполадок или введите ключ",
+      "adv.events.generic": "посмотрите в деталях события, какая программа или драйвер его пишет, найдите «провайдер + id события» в поиске и обновите этот компонент",
+      "adv.events.logfull": "увеличьте максимальный размер журнала (eventvwr → журнал → Свойства) или очистите старые записи",
+      "adv.events.whea-dominant": "сначала исправьте аппаратные ошибки (см. проверку WHEA) — пока они идут, остальные проблемы вытесняются из журнала",
+      "adv.Ntfs/147": "запрос к диску завис на 30+ секунд — сделайте резервную копию, проверьте S.M.A.R.T., кабели и питание: такой завис часто предшествует отказу диска",
+      "adv.Ntfs/55": "данные не успевают записываться на диск — проверьте диск, его драйверы и фоновую нагрузку; если повторяется, выполните chkdsk",
+      "adv.disk/7": "проверьте кабели SATA/NVMe и питание, обновите драйвер накопителя; при повторах — копия данных и замена диска",
+      "adv.disk/11": "попробуйте другой кабель и порт, обновите прошивку диска; повторяющиеся сбросы обычно означают отказ диска",
+      "adv.disk/129": "переподключите диск, обновите чипсетный и дисковый драйвер, затем проверьте S.M.A.R.T.",
+      "adv.disk/153": "обновите BIOS и драйверы чипсета, проверьте блок питания: контроллер зависает под нагрузкой",
+      "adv.storahci/129": "обновите драйвер чипсета/хранения и попробуйте другой порт или кабель",
+      "adv.stornvme/129": "обновите прошивку материнской платы и драйвер NVMe, проверьте охлаждение диска",
+      "adv.Microsoft-Windows-Kernel-PnP/219": "откройте Диспетчер устройств, найдите устройство с предупреждением и переустановите или откатите его драйвер",
+      "adv.Microsoft-Windows-Kernel-Power/41": "последнее выключение было аварийным — проверьте блок питания, температуры и события перед выключением",
+      "adv.Microsoft-Windows-WER-SystemErrorReporting/1001": "синий экран: код BUGCHECK в деталях события обычно указывает на виновный драйвер — найдите его в поиске",
+      "adv.Microsoft-Windows-Resource-Exhaustion-Detector/2004": "не хватило памяти — найдите пожирателя в Диспетчере задач; при повторах нужен больший объём RAM",
+      "adv.Application Error/1000": "программа аварийно завершилась — модуль сбоя указан в деталях события, обновите или переустановите его",
+      "adv.Application Hang/1001": "программа перестала отвечать — обновите её; если повторяется, проверьте плагины и свободную память",
+      "adv.Application Hang/1002": "программа перестала отвечать — обновите её; если повторяется, проверьте плагины и свободную память",
+      "adv.Service Control Manager/7000": "в services.msc проверьте службу, её зависимости и учётную запись; используйте «Авто (с задержкой)», если она не успевает при загрузке",
+      "adv.Service Control Manager/7011": "служба слишком долго ждёт зависимости или медленный диск — посмотрите services.msc и загрузку диска",
+      "adv.Service Control Manager/7022": "зависимость или диск подвешивают запуск — проверьте, какую службу ждёт эта",
+      "adv.Service Control Manager/7026": "включите нужные зависимости в services.msc",
+      "adv.Service Control Manager/7031": "служба неожиданно завершилась — обновите или переустановите её; модуль указан в событии",
+      "adv.Microsoft-Windows-Perflib/1008": "от имени администратора выполните: lodctr /R — это пересоздаст библиотеки счётчиков производительности",
+      "adv.Microsoft-Windows-WindowsUpdateClient/25": "запустите средство устранения неполадок Windows Update; если не поможет — сбросьте компоненты обновления",
+      "adv.MsiInstaller/11708": "запустите установщик от имени администратора и посмотрите код возврата в журнале «Приложения»",
+      "adv.MsiInstaller/11724": "запустите установщик от имени администратора; при необходимости восстановите продукт через Параметры → Приложения",
+      "adv.Microsoft-Windows-CAPI2/513": "обычно нет корневого сертификата или сбиты часы — проверьте системное время и обновите Windows",
+      "adv.Bonjour Service/100": "другое устройство заняло это сетевое имя — переименуйте ПК: Параметры → Система → О системе"
     }
   };
 
@@ -616,7 +722,9 @@
   };
   let page = "findings";
   let introSlide = 0;
+  let filterText = "";
   const off = new Set();
+  const expanded = new Set();
   const params = new URLSearchParams(location.search);
   if (params.get("lang") === "ru" || params.get("lang") === "en") lang = params.get("lang");
   if (params.get("nosplash") === "1") document.getElementById("splash").style.display = "none";
@@ -721,41 +829,118 @@
     }
   }
 
+  function adviceOf(finding) {
+    if (lang === "ru" && finding.rule && i18n.ru["adv." + finding.rule]) {
+      return t("adv." + finding.rule);
+    }
+    return finding.advice || "";
+  }
+
+  function checkDetailOf(finding, result) {
+    const check = (result.checks || []).find(c => c.name === finding.source);
+    return check ? (check.detail || "") : "";
+  }
+
+  function findingKey(finding) {
+    return finding.severity + "|" + finding.source + "|" + finding.message + "|" + finding.evidence;
+  }
+
+  function detailHtml(finding, result) {
+    const lines = [];
+    const checked = checkDetailOf(finding, result);
+    if (checked) lines.push(["det.checked", checked]);
+    if (finding.detail) lines.push(["det.where", finding.detail]);
+    const advice = adviceOf(finding);
+    if (advice) lines.push(["det.do", advice]);
+    if (!lines.length) return "";
+
+    return '<div class="detail">' + lines.map(pair =>
+      '<div class="dline"><span class="dk">' + escapeHtml(t(pair[0])) + "</span>" +
+      '<span class="dv">' + escapeHtml(pair[1]) + "</span></div>"
+    ).join("") + "</div>";
+  }
+
+  function copyPayload(finding) {
+    let text = finding.message;
+    if (finding.evidence) text += "\n" + finding.evidence;
+    const advice = adviceOf(finding);
+    if (advice) text += "\n→ " + advice;
+    return text;
+  }
+
   function renderFindings() {
-    const box = document.getElementById("page-findings");
+    const box = document.getElementById("find-rows");
+    const bar = document.getElementById("findbar");
     const result = view.result;
 
     if (view.phase === "running") {
+      bar.classList.add("hidden");
       box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.running", { msg: view.current || "…" })) + "</div>";
       return;
     }
 
     if (!result) {
+      bar.classList.add("hidden");
       box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.idle")) + "</div>";
       return;
     }
 
-    const rows = result.findings.filter(f => !off.has(f.severity));
+    bar.classList.remove("hidden");
+    const needle = filterText.trim().toLowerCase();
+    let rows = result.findings.filter(f => !off.has(f.severity));
+    const total = rows.length;
+    if (needle) {
+      rows = rows.filter(f =>
+        (f.source + " " + f.message + " " + (f.evidence || "") + " " +
+         (f.detail || "") + " " + adviceOf(f)).toLowerCase().indexOf(needle) !== -1);
+    }
+    set("find-count", t("find.count", { n: rows.length, m: total }));
+
     if (!rows.length) {
       box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.nofilter")) + "</div>";
       return;
     }
 
-    box.innerHTML = rows.map(f =>
-      '<div class="row ' + f.severity + '">' +
+    box.innerHTML = rows.map(f => {
+      const key = findingKey(f);
+      const open = expanded.has(key);
+      return '<div class="row ' + f.severity + (open ? " open" : "") + '" data-key="' +
+          encodeURIComponent(key) + '" tabindex="0" role="button" aria-expanded="' + (open ? "true" : "false") + '">' +
         '<div class="sev">' + escapeHtml(t("sev." + f.severity)) + "</div>" +
         "<div>" +
           '<div class="src">' + escapeHtml(f.source) + "</div>" +
           '<div class="msg">' + escapeHtml(f.message) + "</div>" +
           (f.evidence ? '<div class="note">' + escapeHtml(f.evidence) + "</div>" : "") +
+          detailHtml(f, result) +
         "</div>" +
-        '<button class="copy" data-copy="' + encodeURIComponent(f.message + (f.evidence ? "\n" + f.evidence : "")) + '">' +
-          escapeHtml(t("common.copy")) + "</button>" +
-      "</div>"
-    ).join("");
+        '<div class="act">' +
+          '<button class="copy" data-copy="' + encodeURIComponent(copyPayload(f)) + '">' +
+            escapeHtml(t("common.copy")) + "</button>" +
+          '<span class="chev">▸</span>' +
+        "</div>" +
+      "</div>";
+    }).join("");
+
+    box.querySelectorAll(".row").forEach(row => {
+      const key = decodeURIComponent(row.dataset.key);
+      const toggle = () => {
+        expanded.has(key) ? expanded.delete(key) : expanded.add(key);
+        renderFindings();
+      };
+      row.onclick = toggle;
+      row.onkeydown = event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          toggle();
+        }
+      };
+    });
 
     box.querySelectorAll(".copy").forEach(button => {
-      button.onclick = () => copyText(decodeURIComponent(button.dataset.copy));
+      button.onclick = event => {
+        event.stopPropagation();
+        copyText(decodeURIComponent(button.dataset.copy));
+      };
     });
   }
 
@@ -770,7 +955,9 @@
 
     box.innerHTML = result.checks.map(check =>
       '<div class="check-item">' +
-        '<div class="name">' + escapeHtml(check.name) + "</div>" +
+        '<div class="name">' + escapeHtml(check.name) +
+          (check.detail ? '<div class="note">' + escapeHtml(check.detail) + "</div>" : "") +
+        "</div>" +
         '<div class="count">' + escapeHtml(t("counts.n", { n: check.findings, m: check.notes })) + "</div>" +
       "</div>"
     ).join("");
@@ -910,6 +1097,19 @@
       renderFindings();
     };
   });
+
+  const findInput = document.getElementById("find-filter");
+  findInput.oninput = () => {
+    filterText = findInput.value;
+    renderFindings();
+  };
+  findInput.onkeydown = event => {
+    if (event.key === "Escape") {
+      findInput.value = "";
+      filterText = "";
+      renderFindings();
+    }
+  };
 
   const daysMenu = document.getElementById("days-menu");
   const settingsPanel = document.getElementById("settings-panel");

@@ -49,6 +49,7 @@ namespace WinHealthAudit.Window
             var script = Extract(dataDir, "app.ps1", true);
             Extract(dataDir, "index.html", true);
             Extract(dataDir, "logo.png", true);
+            Extract(dataDir, "logo.ico", false);
 
             var engine = ExtractEngine(Path.GetDirectoryName(dataDir)) ??
                          FindEngine(dir);

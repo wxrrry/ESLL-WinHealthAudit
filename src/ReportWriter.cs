@@ -95,6 +95,12 @@ namespace WinHealthAudit
                 builder.AppendLine("### " + result.Name);
                 builder.AppendLine();
 
+                if (result.Detail.Length > 0)
+                {
+                    builder.AppendLine("> What was checked: " + result.Detail);
+                    builder.AppendLine();
+                }
+
                 if (result.Notes.Count > 0)
                 {
                     foreach (var note in result.Notes)
@@ -143,6 +149,16 @@ namespace WinHealthAudit
                 if (finding.Evidence.Length > 0)
                 {
                     builder.AppendLine("   - Evidence: `" + finding.Evidence + "`");
+                }
+
+                if (finding.Detail.Length > 0)
+                {
+                    builder.AppendLine("   - Checked: " + finding.Detail);
+                }
+
+                if (finding.Advice.Length > 0)
+                {
+                    builder.AppendLine("   - Do: " + finding.Advice);
                 }
             }
 
