@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>WinHealthAudit \\ ESLL</title>
+<style>
+  :root {
+    --bg: #000;
+    --fg: #fff;
+    --dim: rgba(255, 255, 255, .52);
+    --faint: rgba(255, 255, 255, .34);
+    --hair: rgba(255, 255, 255, .14);
+    --chip: rgba(255, 255, 255, .07);
+    --pad: 44px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 300 15px/1.5 "Segoe UI", "Segoe UI Variable", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* monochrome photo-like backdrop ------------------------------------ */
+  .backdrop { position: fixed; inset: 0; overflow: hidden; }
+  .backdrop::before {
+    content: "";
+    position: absolute;
+    inset: -20%;
+    background:
+      radial-gradient(30% 34% at 66% 30%, rgba(255,255,255,.9), transparent 60%),
+      radial-gradient(18% 22% at 52% 46%, rgba(255,255,255,.75), transparent 64%),
+      radial-gradient(22% 26% at 80% 58%, rgba(255,255,255,.7), transparent 62%),
+      radial-gradient(14% 18% at 38% 34%, rgba(255,255,255,.6), transparent 66%),
+      radial-gradient(16% 20% at 70% 74%, rgba(255,255,255,.55), transparent 64%),
+      radial-gradient(12% 16% at 26% 66%, rgba(255,255,255,.5), transparent 68%),
+      radial-gradient(70% 80% at 55% 45%, #4a4a4a, #000 82%);
+    filter: blur(26px) grayscale(1);
+    opacity: .46;
+  }
+  .backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.5'/></svg>");
+    opacity: .06;
+    mix-blend-mode: screen;
+  }
+
+  .scrim {
+    position: fixed; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,.42), rgba(0,0,0,.64) 55%, rgba(0,0,0,.76));
+  }
+
+  .progress {
+    position: fixed; top: 0; left: 0;
+    height: 2px; width: 0;
+    background: var(--fg);
+    transition: width .35s ease;
+    z-index: 5;
+  }
+
+  .shell {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: var(--pad);
+    gap: 26px;
+  }
+
+  /* header ------------------------------------------------------------ */
+  header { display: flex; align-items: center; gap: 18px; }
+
+  .mark {
+    width: 34px; height: 34px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .wordmark { font-size: 13px; letter-spacing: .34em; text-transform: uppercase; }
+  .wordmark.muted { color: var(--faint); margin-left: -6px; }
+  .sep { width: 1px; height: 20px; background: var(--hair); }
+  .machine { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 13px; letter-spacing: .06em; }
+
+  .header-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+
+  .pill {
+    height: 34px;
+    padding: 0 18px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--dim);
+    font: inherit; font-size: 12px;
+    letter-spacing: .18em; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .pill:hover { border-color: var(--fg); color: var(--fg); }
+  .pill.solid { background: var(--fg); color: #000; border-color: var(--fg); }
+  .pill.solid:hover { background: rgba(255,255,255,.85); }
+  .pill[disabled] { opacity: .4; cursor: default; pointer-events: none; }
+  .pill.small { height: 28px; padding: 0 13px; font-size: 11px; }
+
+  .days-wrap, .settings-wrap { position: relative; }
+
+  .menu, .panel {
+    position: absolute; top: 42px; right: 0;
+    background: rgba(6, 6, 6, .96);
+    border: 1px solid var(--hair);
+    border-radius: 12px;
+    padding: 6px;
+    display: none;
+    z-index: 6;
+    backdrop-filter: blur(8px);
+  }
+  .menu.open, .panel.open { display: block; }
+  .menu { min-width: 132px; }
+
+  .menu button {
+    display: block; width: 100%;
+    background: none; border: 0;
+    color: var(--dim); font: inherit;
+    font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+    text-align: left;
+    padding: 8px 14px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .menu button:hover { background: rgba(255, 255, 255, .09); color: var(--fg); }
+  .menu button.active { color: var(--fg); }
+  .menu button.active::after { content: "·"; float: right; color: var(--faint); }
+
+  .panel { width: 330px; padding: 16px; }
+  .panel h3 {
+    font-size: 11px; letter-spacing: .26em; text-transform: uppercase;
+    color: var(--faint); font-weight: 400; margin-bottom: 14px;
+  }
+  .set-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .set-row:last-of-type { border-bottom: 0; }
+  .set-row label { font-size: 13px; color: var(--dim); }
+  .set-row .hintline { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; }
+
+  .seg { display: flex; gap: 4px; background: rgba(255,255,255,.05); border-radius: 999px; padding: 3px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--faint);
+    font: inherit; font-size: 11px; letter-spacing: .1em;
+    padding: 4px 11px; border-radius: 999px; cursor: pointer;
+  }
+  .seg button:hover { color: var(--fg); }
+  .seg button.on { background: var(--fg); color: #000; }
+
+  .check { display: flex; align-items: flex-start; gap: 9px; padding: 9px 0; cursor: pointer; }
+  .check input { accent-color: #fff; margin-top: 3px; }
+  .check span { font-size: 13px; color: var(--dim); }
+  .check .hintline { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; }
+
+  .folder-row { display: flex; gap: 8px; padding: 9px 0 4px; }
+  .folder-row input {
+    flex: 1; min-width: 0;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--hair); border-radius: 8px;
+    color: var(--fg); font: inherit; font-size: 12px;
+    padding: 7px 10px;
+  }
+  .folder-row input:focus { outline: none; border-color: rgba(255,255,255,.45); }
+
+  .panel-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* stats ------------------------------------------------------------- */
+  .stats { display: flex; gap: 76px; padding: 8px 0 4px; }
+
+  .stat .value {
+    font-size: 62px; font-weight: 200; line-height: 1;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat .value small { font-size: 26px; letter-spacing: .06em; }
+  .stat .label {
+    margin-top: 12px;
+    font-size: 10px; letter-spacing: .3em;
+    text-transform: uppercase; color: var(--faint);
+  }
+  .stat.dim .value { color: rgba(255,255,255,.28); }
+
+  /* tabs + filters ---------------------------------------------------- */
+  .bar { display: flex; align-items: center; gap: 26px; border-bottom: 1px solid var(--hair); padding-bottom: 14px; }
+
+  .tabs { display: flex; gap: 26px; }
+  .tab {
+    background: none; border: 0; font: inherit;
+    font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--faint); cursor: pointer; padding: 4px 0;
+    border-bottom: 1px solid transparent;
+  }
+  .tab:hover { color: var(--dim); }
+  .tab.active { color: var(--fg); border-bottom-color: var(--fg); }
+
+  .filters { margin-left: auto; display: flex; gap: 10px; }
+  .filter {
+    height: 28px; padding: 0 14px;
+    border: 1px solid var(--hair); border-radius: 999px;
+    background: transparent; color: var(--dim);
+    font: inherit; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    cursor: pointer;
+  }
+  .filter:hover { color: var(--fg); border-color: rgba(255,255,255,.4); }
+  .filter.off { opacity: .35; }
+  .filter b { font-weight: 400; color: var(--faint); margin-left: 6px; }
+
+  /* content ----------------------------------------------------------- */
+  .content { flex: 1; overflow: hidden; }
+
+  .list, .checks, .log { height: 100%; overflow-y: auto; }
+  .list::-webkit-scrollbar, .checks::-webkit-scrollbar, .log::-webkit-scrollbar { width: 6px; }
+  .list::-webkit-scrollbar-thumb, .checks::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); }
+
+  .row {
+    display: grid;
+    grid-template-columns: 116px 1fr 76px;
+    gap: 26px;
+    padding: 17px 6px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    align-items: baseline;
+  }
+  .row:hover { background: rgba(255,255,255,.045); }
+
+  .sev { font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--faint); }
+  .row.critical .sev { color: #fff; }
+  .row.warning .sev { color: rgba(255,255,255,.72); }
+
+  .src { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 5px; }
+  .msg { font-size: 15px; color: var(--fg); }
+  .note { font-size: 13px; color: var(--dim); margin-top: 4px; max-width: 92ch; }
+
+  .copy {
+    background: none; border: 0; font: inherit;
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    color: transparent; cursor: pointer; text-align: right;
+  }
+  .row:hover .copy { color: var(--faint); }
+  .copy:hover { color: var(--fg) !important; }
+
+  .hint { padding: 26px 6px; color: var(--faint); font-size: 14px; }
+
+  .check-item { display: flex; align-items: baseline; gap: 22px; padding: 15px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .check-item .name { flex: 1; font-size: 15px; }
+  .check-item .count { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  .log {
+    font: 400 13px/1.9 Consolas, "Cascadia Mono", monospace;
+    color: var(--dim); white-space: pre-wrap; padding: 4px 0;
+  }
+  .log b { color: var(--fg); font-weight: 400; }
+
+  .hidden { display: none !important; }
+
+  /* footer ------------------------------------------------------------ */
+  footer { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--hair); padding-top: 18px; }
+  .status { font: 400 11px/1.4 Consolas, monospace; color: var(--faint); letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .footer-right { margin-left: auto; display: flex; gap: 10px; }
+  .footer-right .pill { height: 30px; font-size: 11px; padding: 0 16px; }
+
+  /* splash ------------------------------------------------------------ */
+  .splash {
+    position: fixed; inset: 0; z-index: 30;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 22px;
+    transition: opacity .5s ease;
+  }
+  .splash.gone { opacity: 0; pointer-events: none; }
+  .splash .mark { width: 72px; height: 72px; animation: pulse 1.4s ease-in-out infinite; }
+  .splash .bar { width: 168px; height: 1px; background: rgba(255,255,255,.16); overflow: hidden; }
+  .splash .bar i { display: block; height: 100%; width: 40%; background: #fff; animation: slide 1.1s ease-in-out infinite; }
+
+  @keyframes pulse { 50% { opacity: .45; } }
+  @keyframes slide { 0% { transform: translateX(-100%); } 100% { transform: translateX(320%); } }
+
+  /* intro / tutorial --------------------------------------------------- */
+  .intro {
+    position: fixed; inset: 0; z-index: 20;
+    background: rgba(0, 0, 0, .82);
+    backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .intro-card {
+    width: min(620px, calc(100vw - 64px));
+    background: rgba(6, 6, 6, .96);
+    border: 1px solid var(--hair);
+    border-radius: 18px;
+    padding: 34px 40px 30px;
+  }
+  .intro-top { display: flex; align-items: center; gap: 16px; }
+  .intro-skip {
+    margin-left: auto; background: none; border: 0;
+    color: var(--faint); font: inherit; font-size: 11px;
+    letter-spacing: .2em; text-transform: uppercase; cursor: pointer;
+  }
+  .intro-skip:hover { color: var(--fg); }
+  .intro-step { margin-top: 26px; font-size: 11px; letter-spacing: .3em; color: var(--faint); }
+  .intro-card h2 { font-size: 30px; font-weight: 200; margin-top: 10px; letter-spacing: .01em; }
+  .intro-card p { margin-top: 14px; color: var(--dim); font-size: 15px; line-height: 1.65; max-width: 52ch; }
+  .intro-card p b { color: var(--fg); font-weight: 400; }
+  .intro-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 30px; }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="scrim"></div>
+  <div class="progress" id="progress"></div>
+
+  <div class="shell">
+    <header>
+      <img class="mark" src="/logo.png" alt="">
+      <div class="wordmark">WinHealthAudit</div>
+      <div class="wordmark muted">\\ ESLL</div>
+      <div class="sep"></div>
+      <div class="machine" id="machine-wrap" data-i18n-title="title.machine" title="this computer's name (hostname)">
+        <span id="machine">—</span>
+      </div>
+
+      <div class="header-right">
+        <div class="settings-wrap">
+          <button class="pill" id="settings-btn" data-i18n="btn.settings">Settings</button>
+          <div class="panel" id="settings-panel">
+            <h3 data-i18n="set.title">Settings</h3>
+
+            <div class="set-row">
+              <label data-i18n="set.lang">Language</label>
+              <div class="seg" id="seg-lang">
+                <button data-lang="en">EN</button>
+                <button data-lang="ru">RU</button>
+              </div>
+            </div>
+
+            <div class="set-row">
+              <label data-i18n="set.days">Default window</label>
+              <div class="seg" id="seg-days">
+                <button data-days="7">7</button>
+                <button data-days="14">14</button>
+                <button data-days="30">30</button>
+                <button data-days="90">90</button>
+              </div>
+            </div>
+
+            <label class="check">
+              <input type="checkbox" id="set-autorun">
+              <span><span data-i18n="set.autorun">Run audit when the window opens</span>
+                <span class="hintline" data-i18n="set.autorun.hint">A fresh report every time you start the app.</span></span>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" id="set-startwin">
+              <span><span data-i18n="set.startwin">Start with Windows</span>
+                <span class="hintline" data-i18n="set.startwin.hint">Adds one entry for this app in your user startup.</span></span>
+            </label>
+
+            <div class="set-row" style="display:block">
+              <label data-i18n="set.folder">Reports folder</label>
+              <div class="folder-row">
+                <input type="text" id="set-out" data-i18n-ph="set.folder.ph" placeholder="default: %LOCALAPPDATA%\WinHealthAudit\reports">
+                <button class="pill small" id="set-open-folder" data-i18n="set.openfolder">Open</button>
+              </div>
+            </div>
+
+            <div class="panel-actions">
+              <button class="pill small" id="set-tutorial" data-i18n="set.tutorial">Show tutorial</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="pill" id="elevation" data-i18n-title="title.elevation" title="start the app as administrator for full hardware details">no admin rights</button>
+        <div class="days-wrap">
+          <button class="pill" id="days">14 d <span class="chevron">▾</span></button>
+          <div class="menu" id="days-menu">
+            <button data-days="7">7 days</button>
+            <button data-days="14">14 days</button>
+            <button data-days="30">30 days</button>
+            <button data-days="90">90 days</button>
+          </div>
+        </div>
+        <button class="pill solid" id="run" data-i18n="btn.run">Run audit</button>
+      </div>
+    </header>
+
+    <section class="stats">
+      <div class="stat"><div class="value" id="n-critical">–</div><div class="label" data-i18n="sev.critical">Critical</div></div>
+      <div class="stat"><div class="value" id="n-warning">–</div><div class="label" data-i18n="sev.warning">Warning</div></div>
+      <div class="stat dim"><div class="value" id="n-info">–</div><div class="label" data-i18n="sev.info">Info</div></div>
+      <div class="stat"><div class="value" id="n-seconds">–</div><div class="label" data-i18n="stat.runtime">Run time</div></div>
+    </section>
+
+    <div class="bar">
+      <nav class="tabs">
+        <button class="tab active" data-page="findings" data-i18n="tab.findings">Findings</button>
+        <button class="tab" data-page="checks" data-i18n="tab.checks">Checks</button>
+        <button class="tab" data-page="log" data-i18n="tab.log">Log</button>
+      </nav>
+      <div class="filters">
+        <button class="filter" data-severity="critical"><span data-i18n="sev.critical">Critical</span> <b id="f-critical">–</b></button>
+        <button class="filter" data-severity="warning"><span data-i18n="sev.warning">Warning</span> <b id="f-warning">–</b></button>
+        <button class="filter" data-severity="info"><span data-i18n="sev.info">Info</span> <b id="f-info">–</b></button>
+      </div>
+    </div>
+
+    <main class="content">
+      <div class="list" id="page-findings"></div>
+      <div class="checks hidden" id="page-checks"></div>
+      <div class="log hidden" id="page-log"></div>
+    </main>
+
+    <footer>
+      <div class="status" id="status">…</div>
+      <div class="footer-right">
+        <a class="pill" id="open" href="#" data-i18n="btn.open">Open report</a>
+        <a class="pill" id="save" href="/api/report" download data-i18n="btn.save">Save report</a>
+        <button class="pill" id="copy" data-i18n="btn.copy">Copy summary</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- intro / tutorial -->
+  <div class="intro hidden" id="intro">
+    <div class="intro-card">
+      <div class="intro-top">
+        <img class="mark" src="/logo.png" alt="">
+        <div class="wordmark">WinHealthAudit \\ ESLL</div>
+        <button class="intro-skip" id="intro-skip" data-i18n="tut.skip">Skip</button>
+      </div>
+
+      <div class="intro-step" id="intro-step">1 / 3</div>
+
+      <div class="slide" data-slide="0">
+        <h2 data-i18n="tut.1.t">One audit in a few seconds</h2>
+        <p data-i18n-html="tut.1.d">Press <b>Run audit</b>: nine read-only checks look at disks, event logs, hardware errors, drivers and startup. Nothing on the computer is changed.</p>
+      </div>
+      <div class="slide hidden" data-slide="1">
+        <h2 data-i18n="tut.2.t">Read what it found</h2>
+        <p data-i18n-html="tut.2.d">Findings are sorted worst first; the pills on the right filter by severity. <b>Checks</b> shows what every check looked at, <b>Log</b> shows live progress.</p>
+      </div>
+      <div class="slide hidden" data-slide="2">
+        <h2 data-i18n="tut.3.t">Keep the report</h2>
+        <p data-i18n-html="tut.3.d"><b>Open</b> or <b>save</b> the markdown report, copy a summary for a forum post. <b>Settings</b> has language, default window and startup options.</p>
+      </div>
+
+      <div class="intro-actions">
+        <button class="pill hidden" id="intro-prev" data-i18n="tut.back">Back</button>
+        <button class="pill solid" id="intro-next" data-i18n="tut.next">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- splash -->
+  <div class="splash" id="splash">
+    <img class="mark" src="/logo.png" alt="">
+    <div class="wordmark">WinHealthAudit \\ ESLL</div>
+    <div class="bar"><i></i></div>
+  </div>
+
+<script>
+  /* ---------------------------------------------------------------- i18n */
+  const i18n = {
+    en: {
+      "title.machine": "this computer's name (hostname)",
+      "title.elevation": "start the app as administrator for full hardware details",
+      "btn.settings": "Settings",
+      "btn.run": "Run audit",
+      "btn.running": "Running…",
+      "btn.open": "Open report",
+      "btn.save": "Save report",
+      "btn.copy": "Copy summary",
+      "sev.critical": "Critical",
+      "sev.warning": "Warning",
+      "sev.info": "Info",
+      "stat.runtime": "Run time",
+      "tab.findings": "Findings",
+      "tab.checks": "Checks",
+      "tab.log": "Log",
+      "val.admin": "administrator",
+      "val.noadmin": "no admin rights",
+      "common.copy": "copy",
+      "days.n": "{n} days",
+      "chip.n": "{n} d",
+      "hint.idle": "press run audit to check this machine.",
+      "hint.running": "running — {msg}…",
+      "hint.nofilter": "nothing matches the current filter.",
+      "hint.checks": "the nine checks appear here after a run.",
+      "hint.log": "the progress of the current run appears here.",
+      "status.ready": "ready — press run audit to check this machine",
+      "status.failed": "failed — {err}",
+      "status.finished": "finished in {s} s — report saved to {path}",
+      "status.waiting": "waiting for the local server…",
+      "status.copied": "copied to the clipboard",
+      "status.copyfail": "could not copy: {err}",
+      "status.saved": "settings saved",
+      "status.folder": "opening the reports folder…",
+      "counts.n": "{n} findings · {m} notes",
+      "set.title": "Settings",
+      "set.lang": "Language",
+      "set.days": "Default window",
+      "set.autorun": "Run audit when the window opens",
+      "set.autorun.hint": "A fresh report every time you start the app.",
+      "set.startwin": "Start with Windows",
+      "set.startwin.hint": "Adds one entry for this app in your user startup.",
+      "set.folder": "Reports folder",
+      "set.folder.ph": "default: %LOCALAPPDATA%\\WinHealthAudit\\reports",
+      "set.openfolder": "Open",
+      "set.tutorial": "Show tutorial",
+      "tut.skip": "Skip",
+      "tut.next": "Next",
+      "tut.start": "Start",
+      "tut.back": "Back",
+      "tut.1.t": "One audit in a few seconds",
+      "tut.1.d": "Press <b>Run audit</b>: nine read-only checks look at disks, event logs, hardware errors, drivers and startup. Nothing on the computer is changed.",
+      "tut.2.t": "Read what it found",
+      "tut.2.d": "Findings are sorted worst first; the pills on the right filter by severity. <b>Checks</b> shows what every check looked at, <b>Log</b> shows live progress.",
+      "tut.3.t": "Keep the report",
+      "tut.3.d": "<b>Open</b> or <b>save</b> the markdown report, copy a summary for a forum post. <b>Settings</b> has language, default window and startup options."
+    },
+    ru: {
+      "title.machine": "имя этого компьютера",
+      "title.elevation": "запустите приложение от администратора для полных данных о железе",
+      "btn.settings": "Настройки",
+      "btn.run": "Запустить",
+      "btn.running": "Выполняется…",
+      "btn.open": "Открыть отчёт",
+      "btn.save": "Сохранить отчёт",
+      "btn.copy": "Копировать сводку",
+      "sev.critical": "Критично",
+      "sev.warning": "Внимание",
+      "sev.info": "Инфо",
+      "stat.runtime": "Время работы",
+      "tab.findings": "Находки",
+      "tab.checks": "Проверки",
+      "tab.log": "Журнал",
+      "val.admin": "администратор",
+      "val.noadmin": "без админ-прав",
+      "common.copy": "копировать",
+      "days.n": "{n} дней",
+      "chip.n": "{n} дн",
+      "hint.idle": "нажмите запустить проверку этого компьютера.",
+      "hint.running": "выполняется — {msg}…",
+      "hint.nofilter": "ничего не подходит под фильтр.",
+      "hint.checks": "девять проверок появятся здесь после запуска.",
+      "hint.log": "прогресс текущего запуска появится здесь.",
+      "status.ready": "готово — нажмите запустить проверку этого компьютера",
+      "status.failed": "ошибка — {err}",
+      "status.finished": "готово за {s} с — отчёт сохранён: {path}",
+      "status.waiting": "соединение с локальным сервером…",
+      "status.copied": "скопировано в буфер обмена",
+      "status.copyfail": "не удалось скопировать: {err}",
+      "status.saved": "настройки сохранены",
+      "status.folder": "открываем папку с отчётами…",
+      "counts.n": "находок: {n} · заметок: {m}",
+      "set.title": "Настройки",
+      "set.lang": "Язык",
+      "set.days": "Окно по умолчанию",
+      "set.autorun": "Запускать проверку при открытии окна",
+      "set.autorun.hint": "Свежий отчёт при каждом запуске приложения.",
+      "set.startwin": "Запускать вместе с Windows",
+      "set.startwin.hint": "Добавляет одну запись приложения в автозагрузку пользователя.",
+      "set.folder": "Папка для отчётов",
+      "set.folder.ph": "по умолчанию: %LOCALAPPDATA%\\WinHealthAudit\\reports",
+      "set.openfolder": "Открыть",
+      "set.tutorial": "Показать обучение",
+      "tut.skip": "Пропустить",
+      "tut.next": "Далее",
+      "tut.start": "Начать",
+      "tut.back": "Назад",
+      "tut.1.t": "Одна проверка за пару секунд",
+      "tut.1.d": "Нажмите <b>«Запустить»</b>: девять проверок без изменения системы посмотрят диски, журналы событий, аппаратные ошибки, драйверы и автозагрузку. Компьютер ничего не меняется.",
+      "tut.2.t": "Читайте находки",
+      "tut.2.d": "Находки отсортированы от худших; пилюли справа фильтруют по серьёзности. <b>«Проверки»</b> — что смотрел каждый тест, <b>«Журнал»</b> — прогресс в реальном времени.",
+      "tut.3.t": "Сохраните отчёт",
+      "tut.3.d": "<b>Откройте</b> или <b>сохраните</b> markdown-отчёт, скопируйте сводку для форума. В <b>«Настройках»</b> — язык, окно по умолчанию и автозапуск."
+    }
+  };
+
+  let lang = "en";
+
+  function t(key, vars) {
+    let text = (i18n[lang] && i18n[lang][key]) || i18n.en[key] || key;
+    if (vars) for (const name in vars) text = text.split("{" + name + "}").join(vars[name]);
+    return text;
+  }
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
+    document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+    document.querySelectorAll("#seg-lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+    renderIntro();
+  }
+
+  /* ---------------------------------------------------------------- state */
+  let view = {
+    phase: "idle", days: 14, done: 0, total: 0, current: "", log: [],
+    result: null, error: "", machine: "", elevated: false,
+    settings: { days: 14, autoRun: false, lang: "en", out: "", startWithWindows: false }
+  };
+  let page = "findings";
+  let introSlide = 0;
+  const off = new Set();
+  const params = new URLSearchParams(location.search);
+  if (params.get("lang") === "ru" || params.get("lang") === "en") lang = params.get("lang");
+  if (params.get("nosplash") === "1") document.getElementById("splash").style.display = "none";
+
+  async function refresh() {
+    try {
+      const response = await fetch("/api/state", { cache: "no-store" });
+      view = await response.json();
+      onFirstState();
+      render();
+    } catch (error) {
+      document.getElementById("status").textContent = t("status.waiting");
+    }
+  }
+
+  async function post(url) {
+    await fetch(url, { method: "POST" });
+    await refresh();
+  }
+
+  async function saveSetting(key, value) {
+    const query = key + "=" + encodeURIComponent(value);
+    const response = await fetch("/api/settings?" + query, { method: "POST" });
+    if (response.ok) {
+      view.settings = await response.json();
+      applySettings();
+      flash(t("status.saved"));
+    }
+  }
+
+  function applySettings() {
+    const s = view.settings || {};
+    if (s.lang === "ru" || s.lang === "en") lang = s.lang;
+    document.getElementById("set-autorun").checked = !!s.autoRun;
+    document.getElementById("set-startwin").checked = !!s.startWithWindows;
+    const folder = document.getElementById("set-out");
+    if (document.activeElement !== folder) folder.value = s.out || "";
+    document.querySelectorAll("#seg-days button").forEach(b =>
+      b.classList.toggle("on", Number(b.dataset.days) === Number(s.days)));
+    document.querySelectorAll("#seg-lang button").forEach(b =>
+      b.classList.toggle("on", b.dataset.lang === lang));
+    applyLang();
+  }
+
+  /* -------------------------------------------------------------- render */
+  function render() {
+    const result = view.result;
+    const counts = result ? result.counts : null;
+
+    document.getElementById("machine").textContent = (result && result.machine) || view.machine || "—";
+    document.getElementById("elevation").textContent =
+      view.elevated ? t("val.admin") : t("val.noadmin");
+    renderDays();
+
+    set("n-critical", counts ? counts.critical : "–");
+    set("n-warning", counts ? counts.warning : "–");
+    set("n-info", counts ? counts.info : "–");
+    document.getElementById("n-seconds").innerHTML =
+      result ? result.seconds + "<small>s</small>" : "–";
+
+    set("f-critical", counts ? counts.critical : "–");
+    set("f-warning", counts ? counts.warning : "–");
+    set("f-info", counts ? counts.info : "–");
+
+    const running = view.phase === "running";
+    const width = view.total ? Math.round(100 * view.done / view.total) : 0;
+    document.getElementById("progress").style.width = running ? width + "%" : "0";
+    document.getElementById("run").disabled = running;
+    document.getElementById("run").textContent = running ? t("btn.running") : t("btn.run");
+
+    applySettings();
+    renderStatus();
+    renderFindings();
+    renderChecks();
+    renderLog();
+  }
+
+  function set(id, value) {
+    document.getElementById(id).textContent = value;
+  }
+
+  function renderDays() {
+    document.getElementById("days").innerHTML =
+      t("chip.n", { n: view.days }) + ' <span class="chevron">▾</span>';
+    document.querySelectorAll("#days-menu button").forEach(option => {
+      option.textContent = t("days.n", { n: option.dataset.days });
+      option.classList.toggle("active", Number(option.dataset.days) === view.days);
+    });
+  }
+
+  function renderStatus() {
+    const status = document.getElementById("status");
+
+    if (view.phase === "running") {
+      status.textContent = "[" + view.done + "/" + view.total + "] " + view.current;
+    } else if (view.phase === "failed") {
+      status.textContent = t("status.failed", { err: view.error || "?" });
+    } else if (view.result) {
+      status.textContent = t("status.finished", { s: view.result.seconds, path: view.result.report });
+    } else {
+      status.textContent = t("status.ready");
+    }
+  }
+
+  function renderFindings() {
+    const box = document.getElementById("page-findings");
+    const result = view.result;
+
+    if (view.phase === "running") {
+      box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.running", { msg: view.current || "…" })) + "</div>";
+      return;
+    }
+
+    if (!result) {
+      box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.idle")) + "</div>";
+      return;
+    }
+
+    const rows = result.findings.filter(f => !off.has(f.severity));
+    if (!rows.length) {
+      box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.nofilter")) + "</div>";
+      return;
+    }
+
+    box.innerHTML = rows.map(f =>
+      '<div class="row ' + f.severity + '">' +
+        '<div class="sev">' + escapeHtml(t("sev." + f.severity)) + "</div>" +
+        "<div>" +
+          '<div class="src">' + escapeHtml(f.source) + "</div>" +
+          '<div class="msg">' + escapeHtml(f.message) + "</div>" +
+          (f.evidence ? '<div class="note">' + escapeHtml(f.evidence) + "</div>" : "") +
+        "</div>" +
+        '<button class="copy" data-copy="' + encodeURIComponent(f.message + (f.evidence ? "\n" + f.evidence : "")) + '">' +
+          escapeHtml(t("common.copy")) + "</button>" +
+      "</div>"
+    ).join("");
+
+    box.querySelectorAll(".copy").forEach(button => {
+      button.onclick = () => copyText(decodeURIComponent(button.dataset.copy));
+    });
+  }
+
+  function renderChecks() {
+    const box = document.getElementById("page-checks");
+    const result = view.result;
+
+    if (!result) {
+      box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.checks")) + "</div>";
+      return;
+    }
+
+    box.innerHTML = result.checks.map(check =>
+      '<div class="check-item">' +
+        '<div class="name">' + escapeHtml(check.name) + "</div>" +
+        '<div class="count">' + escapeHtml(t("counts.n", { n: check.findings, m: check.notes })) + "</div>" +
+      "</div>"
+    ).join("");
+  }
+
+  function renderLog() {
+    const box = document.getElementById("page-log");
+    const lines = view.log || [];
+
+    if (!lines.length) {
+      box.innerHTML = '<div class="hint">' + escapeHtml(t("hint.log")) + "</div>";
+      return;
+    }
+
+    box.innerHTML = lines.map(line =>
+      line.startsWith("[") ? "<b>" + escapeHtml(line) + "</b>" : escapeHtml(line)
+    ).join("\n");
+  }
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      flash(t("status.copied"));
+    } catch (error) {
+      flash(t("status.copyfail", { err: error.message }));
+    }
+  }
+
+  function flash(text) {
+    const status = document.getElementById("status");
+    status.textContent = text;
+    setTimeout(renderStatus, 2200);
+  }
+
+  function copySummary() {
+    const result = view.result;
+    if (!result) return;
+
+    const lines = [
+      "WinHealthAudit \\ ESLL - " + result.generated,
+      "Critical: " + result.counts.critical + ", Warning: " + result.counts.warning +
+        ", Info: " + result.counts.info,
+      ""
+    ];
+
+    result.findings
+      .filter(f => f.severity !== "info")
+      .forEach(f => lines.push("[" + f.severity.toUpperCase() + "] " + f.source + " - " + f.message));
+
+    copyText(lines.join("\n"));
+  }
+
+  /* ----------------------------------------------------------- splash/intro */
+  let firstStateAt = 0;
+  let introDone = false;
+
+  function onFirstState() {
+    if (firstStateAt) return;
+    firstStateAt = Date.now();
+    applySettings();
+
+    setTimeout(() => {
+      if (params.get("splash") === "1") return;   // screenshot hook: keep the splash
+      document.getElementById("splash").classList.add("gone");
+      if (params.get("tutorial") === "1") showIntro(true);
+      else if (localStorage.getItem("wha_intro") !== "v1") showIntro(false);
+      else maybeAutoRun();
+    }, Math.max(0, 700 - (Date.now() - firstStateAt)));
+  }
+
+  function showIntro(force) {
+    if (!force && localStorage.getItem("wha_intro") === "v1") return;
+    introSlide = 0;
+    renderIntro();
+    document.getElementById("intro").classList.remove("hidden");
+  }
+
+  function finishIntro() {
+    localStorage.setItem("wha_intro", "v1");
+    document.getElementById("intro").classList.add("hidden");
+    introDone = true;
+    maybeAutoRun();
+  }
+
+  function renderIntro() {
+    document.querySelectorAll(".slide").forEach(slide =>
+      slide.classList.toggle("hidden", Number(slide.dataset.slide) !== introSlide));
+    document.getElementById("intro-step").textContent = (introSlide + 1) + " / 3";
+    document.getElementById("intro-prev").classList.toggle("hidden", introSlide === 0);
+    document.getElementById("intro-next").textContent =
+      introSlide === 2 ? t("tut.start") : t("tut.next");
+  }
+
+  function maybeAutoRun() {
+    if (!introDone && localStorage.getItem("wha_intro") === "v1") introDone = true;
+    if (!introDone) return;
+    if (!view.settings || !view.settings.autoRun) return;
+    if (view.phase !== "idle" || view.result) return;
+    if (sessionStorage.getItem("wha_ran")) return;
+    sessionStorage.setItem("wha_ran", "1");
+    post("/api/run?days=" + view.days);
+  }
+
+  /* --------------------------------------------------------------- events */
+  function openPage(name) {
+    if (!["findings", "checks", "log"].includes(name)) return;
+    page = name;
+    document.querySelectorAll(".tab").forEach(tab =>
+      tab.classList.toggle("active", tab.dataset.page === name));
+    ["findings", "checks", "log"].forEach(sheet =>
+      document.getElementById("page-" + sheet).classList.toggle("hidden", sheet !== name));
+  }
+
+  window.addEventListener("hashchange", () => openPage(location.hash.slice(1)));
+  if (location.hash) openPage(location.hash.slice(1));
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.onclick = () => {
+      openPage(tab.dataset.page);
+      location.hash = tab.dataset.page;
+    };
+  });
+
+  document.querySelectorAll(".filter").forEach(button => {
+    button.onclick = () => {
+      const severity = button.dataset.severity;
+      off.has(severity) ? off.delete(severity) : off.add(severity);
+      button.classList.toggle("off", off.has(severity));
+      renderFindings();
+    };
+  });
+
+  const daysMenu = document.getElementById("days-menu");
+  const settingsPanel = document.getElementById("settings-panel");
+
+  document.getElementById("days").onclick = event => {
+    event.stopPropagation();
+    settingsPanel.classList.remove("open");
+    daysMenu.classList.toggle("open");
+    renderDays();
+  };
+
+  daysMenu.querySelectorAll("button").forEach(option => {
+    option.onclick = () => {
+      view.days = Number(option.dataset.days);
+      saveSetting("days", option.dataset.days);
+      daysMenu.classList.remove("open");
+      render();
+    };
+  });
+
+  document.getElementById("settings-btn").onclick = event => {
+    event.stopPropagation();
+    daysMenu.classList.remove("open");
+    settingsPanel.classList.toggle("open");
+  };
+
+  settingsPanel.addEventListener("click", event => event.stopPropagation());
+  document.addEventListener("click", () => {
+    daysMenu.classList.remove("open");
+    settingsPanel.classList.remove("open");
+  });
+
+  document.querySelectorAll("#seg-lang button").forEach(button => {
+    button.onclick = () => {
+      const next = button.dataset.lang;
+      lang = next;
+      if (view.settings) view.settings.lang = next;
+      applyLang();
+      render();
+      saveSetting("lang", next);
+    };
+  });
+
+  document.querySelectorAll("#seg-days button").forEach(button => {
+    button.onclick = () => {
+      view.days = Number(button.dataset.days);
+      saveSetting("days", button.dataset.days);
+      render();
+    };
+  });
+
+  document.getElementById("set-autorun").onchange = event =>
+    saveSetting("autoRun", event.target.checked ? "1" : "0");
+
+  document.getElementById("set-startwin").onchange = event =>
+    saveSetting("startWithWindows", event.target.checked ? "1" : "0");
+
+  document.getElementById("set-out").onchange = event =>
+    saveSetting("out", event.target.value.trim());
+
+  document.getElementById("set-open-folder").onclick = () => {
+    flash(t("status.folder"));
+    post("/api/open-folder");
+  };
+
+  document.getElementById("set-tutorial").onclick = () => {
+    settingsPanel.classList.remove("open");
+    showIntro(true);
+  };
+
+  document.getElementById("intro-skip").onclick = finishIntro;
+  document.getElementById("intro-prev").onclick = () => {
+    if (introSlide > 0) introSlide--;
+    renderIntro();
+  };
+  document.getElementById("intro-next").onclick = () => {
+    if (introSlide < 2) { introSlide++; renderIntro(); }
+    else finishIntro();
+  };
+
+  document.getElementById("run").onclick = () => post("/api/run?days=" + view.days);
+  document.getElementById("copy").onclick = copySummary;
+  document.getElementById("open").onclick = event => {
+    event.preventDefault();
+    post("/api/open");
+  };
+
+  if (params.get("settings") === "1") {
+    document.addEventListener("DOMContentLoaded", () => settingsPanel.classList.add("open"));
+  }
+  if (params.get("menu") === "days") {
+    document.addEventListener("DOMContentLoaded", () => daysMenu.classList.add("open"));
+  }
+
+  if (localStorage.getItem("wha_intro") === "v1") introDone = true;
+  applyLang();
+  refresh();
+  setInterval(refresh, 700);
+</script>
+</body>
+</html>
