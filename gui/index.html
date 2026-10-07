@@ -283,6 +283,22 @@
   .find-input:focus { outline: none; border-color: rgba(255,255,255,.45); }
   .find-count { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); font-variant-numeric: tabular-nums; }
 
+  .delta { margin-left: auto; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+
+  .new {
+    display: inline-block; margin-left: 10px; padding: 1px 9px;
+    border: 1px solid rgba(255,255,255,.5); border-radius: 999px;
+    font-size: 9px; letter-spacing: .2em; color: var(--fg); vertical-align: middle;
+  }
+
+  .hidebtn {
+    background: none; border: 1px solid var(--hair); border-radius: 999px;
+    color: var(--faint); font: inherit; font-size: 10px;
+    letter-spacing: .18em; text-transform: uppercase;
+    padding: 4px 13px; cursor: pointer;
+  }
+  .hidebtn:hover { color: var(--fg); border-color: rgba(255,255,255,.5); }
+
   .hint { padding: 26px 6px; color: var(--faint); font-size: 14px; }
 
   .check-item { display: flex; align-items: baseline; gap: 22px; padding: 15px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
@@ -428,6 +444,7 @@
     </header>
 
     <section class="stats">
+      <div class="stat"><div class="value" id="n-health">–</div><div class="label" data-i18n="stat.health">Health</div></div>
       <div class="stat"><div class="value" id="n-critical">–</div><div class="label" data-i18n="sev.critical">Critical</div></div>
       <div class="stat"><div class="value" id="n-warning">–</div><div class="label" data-i18n="sev.warning">Warning</div></div>
       <div class="stat dim"><div class="value" id="n-info">–</div><div class="label" data-i18n="sev.info">Info</div></div>
@@ -452,7 +469,9 @@
         <div class="findbar hidden" id="findbar">
           <input class="find-input" id="find-filter" type="search" autocomplete="off" spellcheck="false"
                  data-i18n-ph="find.filter" placeholder="filter findings…">
+          <div class="delta" id="find-delta"></div>
           <div class="find-count" id="find-count"></div>
+          <button class="filter off hidden" id="find-hidden"><span data-i18n="btn.hidden">hidden</span> <b id="f-hidden">0</b></button>
         </div>
         <div id="find-rows"></div>
       </div>
@@ -523,7 +542,12 @@
       "sev.critical": "Critical",
       "sev.warning": "Warning",
       "sev.info": "Info",
+      "stat.health": "Health",
       "stat.runtime": "Run time",
+      "chip.new": "new",
+      "btn.hidden": "hidden",
+      "delta.line": "{n} new since the last run · {m} resolved",
+      "act.hide": "Hide this finding",
       "tab.findings": "Findings",
       "tab.checks": "Checks",
       "tab.log": "Log",
@@ -585,7 +609,12 @@
       "sev.critical": "Критично",
       "sev.warning": "Внимание",
       "sev.info": "Инфо",
+      "stat.health": "Здоровье",
       "stat.runtime": "Время работы",
+      "chip.new": "новая",
+      "btn.hidden": "скрытые",
+      "delta.line": "новых с прошлого раза: {n} · исчезло: {m}",
+      "act.hide": "Скрыть эту находку",
       "tab.findings": "Находки",
       "tab.checks": "Проверки",
       "tab.log": "Журнал",
@@ -723,6 +752,7 @@
   let page = "findings";
   let introSlide = 0;
   let filterText = "";
+  let showHidden = false;
   const off = new Set();
   const expanded = new Set();
   const params = new URLSearchParams(location.search);
@@ -779,6 +809,7 @@
       view.elevated ? t("val.admin") : t("val.noadmin");
     renderDays();
 
+    set("n-health", counts && result.health !== undefined ? result.health + "/100" : "–");
     set("n-critical", counts ? counts.critical : "–");
     set("n-warning", counts ? counts.warning : "–");
     set("n-info", counts ? counts.info : "–");
@@ -842,10 +873,13 @@
   }
 
   function findingKey(finding) {
-    return finding.severity + "|" + finding.source + "|" + finding.message + "|" + finding.evidence;
+    // Digits are dropped so a changed count or percentage is still the same
+    // finding: it neither counts as new nor as resolved.
+    var stable = String(finding.message || "").replace(/[0-9]+/g, "");
+    return (finding.rule || "") + "|" + finding.source + "|" + stable;
   }
 
-  function detailHtml(finding, result) {
+  function detailHtml(finding, result, key) {
     const lines = [];
     const checked = checkDetailOf(finding, result);
     if (checked) lines.push(["det.checked", checked]);
@@ -857,7 +891,11 @@
     return '<div class="detail">' + lines.map(pair =>
       '<div class="dline"><span class="dk">' + escapeHtml(t(pair[0])) + "</span>" +
       '<span class="dv">' + escapeHtml(pair[1]) + "</span></div>"
-    ).join("") + "</div>";
+    ).join("") +
+      '<div class="dline"><span class="dk"></span><span class="dv">' +
+        '<button class="hidebtn" data-hide="' + encodeURIComponent(key) + '">' +
+        escapeHtml(t("act.hide")) + "</button></span></div>" +
+    "</div>";
   }
 
   function copyPayload(finding) {
@@ -886,9 +924,41 @@
     }
 
     bar.classList.remove("hidden");
+
+    // hidden findings (the user pressed "hide this finding" on a rule)
+    const hiddenList = [].concat((view.settings && view.settings.hidden) || []).filter(Boolean);
+    const hiddenSet = new Set(hiddenList);
+    const hiddenChip = document.getElementById("find-hidden");
+    set("f-hidden", hiddenList.length);
+    hiddenChip.classList.toggle("hidden", hiddenList.length === 0);
+    hiddenChip.classList.toggle("off", !showHidden);
+
+    // delta against the previous run: NEW badges + "resolved" count
+    let newKeys = null;
+    let resolved = 0;
+    const prev = view.prev;
+    if (prev && prev.findings) {
+      const prevKeys = new Set(prev.findings.map(findingKey));
+      const curKeys = new Set(result.findings.map(findingKey));
+      newKeys = new Set();
+      result.findings.forEach(f => {
+        const k = findingKey(f);
+        if (!prevKeys.has(k)) newKeys.add(k);
+      });
+      resolved = prev.findings.filter(f => !curKeys.has(findingKey(f))).length;
+    }
+    const deltaBox = document.getElementById("find-delta");
+    if (newKeys && (newKeys.size || resolved)) {
+      deltaBox.textContent = t("delta.line", { n: newKeys.size, m: resolved });
+      deltaBox.classList.remove("hidden");
+    } else {
+      deltaBox.classList.add("hidden");
+    }
+
     const needle = filterText.trim().toLowerCase();
     let rows = result.findings.filter(f => !off.has(f.severity));
     const total = rows.length;
+    rows = rows.filter(f => showHidden || !hiddenSet.has(findingKey(f)));
     if (needle) {
       rows = rows.filter(f =>
         (f.source + " " + f.message + " " + (f.evidence || "") + " " +
@@ -904,14 +974,16 @@
     box.innerHTML = rows.map(f => {
       const key = findingKey(f);
       const open = expanded.has(key);
+      const isNew = newKeys && newKeys.has(key);
       return '<div class="row ' + f.severity + (open ? " open" : "") + '" data-key="' +
           encodeURIComponent(key) + '" tabindex="0" role="button" aria-expanded="' + (open ? "true" : "false") + '">' +
-        '<div class="sev">' + escapeHtml(t("sev." + f.severity)) + "</div>" +
+        '<div class="sev">' + escapeHtml(t("sev." + f.severity)) +
+          (isNew ? '<span class="new">' + escapeHtml(t("chip.new")) + "</span>" : "") + "</div>" +
         "<div>" +
           '<div class="src">' + escapeHtml(f.source) + "</div>" +
           '<div class="msg">' + escapeHtml(f.message) + "</div>" +
           (f.evidence ? '<div class="note">' + escapeHtml(f.evidence) + "</div>" : "") +
-          detailHtml(f, result) +
+          detailHtml(f, result, key) +
         "</div>" +
         '<div class="act">' +
           '<button class="copy" data-copy="' + encodeURIComponent(copyPayload(f)) + '">' +
@@ -940,6 +1012,13 @@
       button.onclick = event => {
         event.stopPropagation();
         copyText(decodeURIComponent(button.dataset.copy));
+      };
+    });
+
+    box.querySelectorAll(".hidebtn").forEach(button => {
+      button.onclick = event => {
+        event.stopPropagation();
+        post("/api/hide?k=" + button.dataset.hide);
       };
     });
   }
@@ -1006,6 +1085,7 @@
 
     const lines = [
       "WinHealthAudit \\ ESLL - " + result.generated,
+      "Health: " + (result.health !== undefined ? result.health : "?") + "/100",
       "Critical: " + result.counts.critical + ", Warning: " + result.counts.warning +
         ", Info: " + result.counts.info,
       ""
@@ -1089,7 +1169,7 @@
     };
   });
 
-  document.querySelectorAll(".filter").forEach(button => {
+  document.querySelectorAll(".filter[data-severity]").forEach(button => {
     button.onclick = () => {
       const severity = button.dataset.severity;
       off.has(severity) ? off.delete(severity) : off.add(severity);
@@ -1097,6 +1177,11 @@
       renderFindings();
     };
   });
+
+  document.getElementById("find-hidden").onclick = () => {
+    showHidden = !showHidden;
+    renderFindings();
+  };
 
   const findInput = document.getElementById("find-filter");
   findInput.oninput = () => {
@@ -1110,6 +1195,40 @@
       renderFindings();
     }
   };
+
+  /* R = re-run, / = focus the filter, 1/2/3 = tabs, Esc = unwind */
+  document.addEventListener("keydown", event => {
+    const el = event.target;
+    const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+    if (event.key === "Escape" && typing) return;   // the filter input has its own handler
+    if (typing || event.ctrlKey || event.altKey || event.metaKey) return;
+
+    if (event.key === "/") {
+      event.preventDefault();
+      findInput.focus();
+      return;
+    }
+    if (event.key === "r" || event.key === "R" || event.key === "к" || event.key === "К") {
+      if (view.phase !== "running") post("/api/run?days=" + view.days);
+      return;
+    }
+    if (event.key === "1") { openPage("findings"); location.hash = "findings"; return; }
+    if (event.key === "2") { openPage("checks"); location.hash = "checks"; return; }
+    if (event.key === "3") { openPage("log"); location.hash = "log"; return; }
+    if (event.key === "Escape") {
+      if (findInput.value) {
+        findInput.value = "";
+        filterText = "";
+        renderFindings();
+      } else if (expanded.size) {
+        expanded.clear();
+        renderFindings();
+      } else if (showHidden) {
+        showHidden = false;
+        renderFindings();
+      }
+    }
+  });
 
   const daysMenu = document.getElementById("days-menu");
   const settingsPanel = document.getElementById("settings-panel");

@@ -35,6 +35,7 @@ $html    = [System.IO.File]::ReadAllBytes($page)
 
 $settingsDir  = Join-Path $env:LOCALAPPDATA 'WinHealthAudit'
 $settingsPath = Join-Path $settingsDir 'settings.json'
+$lastPath     = Join-Path $settingsDir 'last-result.json'
 
 # --- settings ------------------------------------------------------------
 
@@ -45,6 +46,7 @@ function Merge-Settings($loaded) {
         lang             = 'en'
         out              = ''
         startWithWindows = $false
+        hidden           = @()
     }
 
     if ($loaded) {
@@ -66,7 +68,7 @@ $script:settings = Merge-Settings $loaded
 
 function Save-Settings {
     New-Item -ItemType Directory -Path $settingsDir -Force | Out-Null
-    $script:settings | ConvertTo-Json | Set-Content $settingsPath -Encoding UTF8
+    $script:settings | ConvertTo-Json -Depth 6 | Set-Content $settingsPath -Encoding UTF8
 }
 
 function Apply-Startup($enabled) {
@@ -122,8 +124,26 @@ $script:job        = $null
 $script:phase      = 'idle'
 $script:days       = $script:settings.days
 $script:result     = $null
+$script:prevResult = $null
 $script:errorText  = ''
 $script:log        = @()
+
+function Get-PrevResult {
+    try {
+        if (Test-Path $lastPath) {
+            $raw = Get-Content $lastPath -Raw
+            if ($raw) { return ($raw | ConvertFrom-Json) }
+        }
+    } catch { }
+    return $null
+}
+
+function Save-LastResult($res) {
+    try {
+        New-Item -ItemType Directory -Path $settingsDir -Force | Out-Null
+        $res | ConvertTo-Json -Depth 12 | Set-Content $lastPath -Encoding UTF8
+    } catch { }
+}
 
 function Update-Run {
     if ($script:phase -ne 'running' -or -not $script:job) { return }
@@ -141,6 +161,8 @@ function Update-Run {
     if ($jsonLine) {
         try {
             $script:result    = $jsonLine | ConvertFrom-Json
+            $script:prevResult = Get-PrevResult
+            Save-LastResult $script:result
             $script:phase     = 'done'
             $script:errorText = ''
         } catch {
@@ -214,6 +236,7 @@ function Get-State {
         current  = $current
         log      = @($script:log)
         result   = $script:result
+        prev     = $script:prevResult
         error    = $script:errorText
         machine  = $env:COMPUTERNAME
         elevated = $elevated
@@ -437,6 +460,23 @@ function Handle-Request($stream, [string]$method, [string]$target) {
 
         '/api/settings' {
             if ($query) { Write-Settings $query }
+            Send-Json $stream $script:settings
+        }
+
+        '/api/hide' {
+            $key = ''
+            if ($query -match 'k=(.*)$') { $key = [Uri]::UnescapeDataString($Matches[1]) }
+            if ($key) {
+                $list = @()
+                if ($script:settings.hidden) { $list = @($script:settings.hidden | Where-Object { $_ }) }
+                if ($list -contains $key) {
+                    $list = @($list | Where-Object { $_ -ne $key })
+                } else {
+                    $list += $key
+                }
+                $script:settings.hidden = $list
+                Save-Settings
+            }
             Send-Json $stream $script:settings
         }
 

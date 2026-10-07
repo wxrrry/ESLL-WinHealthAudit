@@ -11,7 +11,7 @@ A read-only Windows health report — one executable, one markdown file.
 ![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square&logo=windows&logoColor=white)
 ![runtime](https://img.shields.io/badge/runtime-.NET%20Framework%204-512BD4?style=flat-square)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white)
-![version](https://img.shields.io/badge/version-1.1.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-1.2.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 [![build](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml/badge.svg)](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml)
 ![release](https://img.shields.io/github/v/release/wxrrry/ESLL-WinHealthAudit?style=flat-square&logo=github)
@@ -55,6 +55,17 @@ A read-only Windows health report — one executable, one markdown file.
   *where the finding came from* (log, event id, WMI class) and *what to do*
   about it — advice is shown in your interface language. A filter box above
   the list narrows it as you type; the rows are reachable with the keyboard.
+  A finding you are tired of looking at can be hidden with one click — and
+  un-hidden from the *hidden* chip next to the filter.
+- **Health score 0–100** in the header: every critical finding costs 8
+  points, every warning 2. The same number goes into the JSON output and at
+  the top of the markdown report, so it can be tracked over time.
+- **Since the last run** — a delta line over the findings list (`N new ·
+  M resolved`) and a `NEW` badge on rows that were not there last time;
+  counts and percentages do not break the comparison.
+- **Hotkeys.** `R` re-runs the audit, `/` jumps into the filter, `1` `2` `3`
+  switch *Findings* / *Checks* / *Log*, `Esc` clears the filter or folds
+  everything back.
 - **Black and white, keyboard-friendly window** in an Edge `--app` view —
   *Findings*, *Checks*, *Log*, report buttons, period and language pickers.
   The logo lives in the taskbar and in the tray (open, run an audit, quit).
@@ -78,7 +89,8 @@ A read-only Windows health report — one executable, one markdown file.
 </p>
 
 <p align="center">
-  <em>Findings — click a row to expand its source, what was checked and what to do.</em>
+  <em>Findings — health score, what changed since the last run, click a row to
+  expand its source, what was checked and what to do.</em>
 </p>
 
 <table align="center">
@@ -167,7 +179,7 @@ WinHealthAudit.Core.exe --json --days 7   # one JSON document on stdout
 | `-d`, `--days N` | look back N days in the event logs (default 14, max 365) |
 | `-o`, `--out DIR` | where to write the markdown report (default `.\reports`) |
 | `-q`, `--quiet` | print only the progress lines and the summary |
-| `--json` | the result as one JSON document on stdout, progress on stderr — what the window reads |
+| `--json` | the result as one JSON document on stdout (with the `health` score), progress on stderr — what the window reads |
 | `-h`, `--help` | usage |
 
 Exit codes: the number of critical findings (0 means nothing critical), `2`
@@ -286,6 +298,14 @@ MIT — see [LICENSE](LICENSE).
 *откуда взято* (журнал, код события, класс WMI) и *что делать* (совет на
 вашем языке). Над списком есть фильтр по тексту, строки доступны с клавиатуры,
 логотип — в панели задач и в трее (открыть, запустить проверку, выход).
+
+В шапке — **оценка здоровья 0–100** (каждая критическая находка снимает 8
+очков, каждая «внимание» — 2); она же попадает в JSON и в начало отчёта.
+Над списком — строка дельты с прошлого запуска («новых · исчезло») и бейдж
+**новая** у строк, которых не было вчера. Надоевшую находку можно скрыть
+кнопкой в раскрытой строке и вернуть обратно фильтром *скрытые*.
+Горячие клавиши: `R` — запуск, `/` — фильтр, `1` `2` `3` — вкладки, `Esc` —
+сброс.
 
 ## Что проверяется
 

@@ -26,6 +26,7 @@ namespace WinHealthAudit
                 .Append(",\"warning\":").Append(ReportWriter.Count(results, Severity.Warning))
                 .Append(",\"info\":").Append(ReportWriter.Count(results, Severity.Info))
                 .Append("}");
+            builder.Append(",\"health\":").Append(Health(results).ToString(CultureInfo.InvariantCulture));
 
             builder.Append(",\"checks\":[");
             for (var index = 0; index < results.Count; index++)
@@ -59,6 +60,15 @@ namespace WinHealthAudit
             builder.Append("]}");
 
             return builder.ToString();
+        }
+
+        public static int Health(IList<CheckResult> results)
+        {
+            var score = 100
+                - 8 * ReportWriter.Count(results, Severity.Critical)
+                - 2 * ReportWriter.Count(results, Severity.Warning);
+            if (score < 0) score = 0;
+            return score;
         }
 
         /// <summary>Same order the report and the window use: worst first, then by source.</summary>

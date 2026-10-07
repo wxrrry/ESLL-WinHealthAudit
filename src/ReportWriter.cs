@@ -73,6 +73,7 @@ namespace WinHealthAudit
             builder.AppendLine("- Event window: last " + context.Options.WindowDays + " days");
             builder.AppendLine("- Elevated: " + (context.IsElevated ? "yes" : "no"));
             builder.AppendLine("- Checks ran: " + results.Count);
+            builder.AppendLine("- Health: " + JsonReport.Health(results) + " / 100");
             builder.AppendLine();
 
             builder.AppendLine("## Summary");
