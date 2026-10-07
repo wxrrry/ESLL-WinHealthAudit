@@ -36,6 +36,8 @@ $html    = [System.IO.File]::ReadAllBytes($page)
 $settingsDir  = Join-Path $env:LOCALAPPDATA 'WinHealthAudit'
 $settingsPath = Join-Path $settingsDir 'settings.json'
 $lastPath     = Join-Path $settingsDir 'last-result.json'
+$historyDir   = Join-Path $settingsDir 'history'
+$historyPath  = Join-Path $settingsDir 'history.json'
 
 # --- settings ------------------------------------------------------------
 
@@ -46,6 +48,7 @@ function Merge-Settings($loaded) {
         lang             = 'en'
         out              = ''
         startWithWindows = $false
+        notify           = $true
         hidden           = @()
     }
 
@@ -101,6 +104,7 @@ function Write-Settings($query) {
             'autoRun'          { $script:settings.autoRun = ($value -eq '1' -or $value -eq 'true') }
             'lang'             { $script:settings.lang = if ($value -eq 'ru') { 'ru' } else { 'en' } }
             'out'              { $script:settings.out = $value }
+            'notify'           { $script:settings.notify = ($value -eq '1' -or $value -eq 'true') }
             'startWithWindows' {
                 $script:settings.startWithWindows = ($value -eq '1' -or $value -eq 'true')
                 Apply-Startup $script:settings.startWithWindows
@@ -127,6 +131,7 @@ $script:result     = $null
 $script:prevResult = $null
 $script:errorText  = ''
 $script:log        = @()
+$script:history    = @()
 
 function Get-PrevResult {
     try {
@@ -144,6 +149,118 @@ function Save-LastResult($res) {
         $res | ConvertTo-Json -Depth 12 | Set-Content $lastPath -Encoding UTF8
     } catch { }
 }
+
+function Read-History {
+    try {
+        if (Test-Path $historyPath) {
+            $raw = Get-Content $historyPath -Raw
+            if ($raw) {
+                # assign first: piping into @() would wrap the whole array as one element
+                $parsed = $raw | ConvertFrom-Json
+                return @($parsed)
+            }
+        }
+    } catch { }
+    return @()
+}
+
+# One row in history.json (newest first) plus a full snapshot of the run,
+# so an old run can be reopened read-only from the History tab.
+function Add-History($res) {
+    try {
+        $id = [DateTimeOffset]::Now.ToUnixTimeMilliseconds()
+        New-Item -ItemType Directory -Path $historyDir -Force | Out-Null
+        $res | ConvertTo-Json -Depth 12 | Set-Content (Join-Path $historyDir ("run-$id.json")) -Encoding UTF8
+
+        $sum = [pscustomobject]@{
+            id       = $id
+            ts       = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+            days     = $script:days
+            health   = if ($null -ne $res.health) { [int]$res.health } else { $null }
+            critical = [int]$res.counts.critical
+            warning  = [int]$res.counts.warning
+            info     = [int]$res.counts.info
+            findings = @($res.findings).Count
+            seconds  = $res.seconds
+        }
+
+        $list = @($sum) + @($script:history)
+        if ($list.Count -gt 50) { $list = @($list[0..49]) }
+        $script:history = $list
+        ConvertTo-Json -InputObject $script:history -Depth 6 | Set-Content $historyPath -Encoding UTF8
+
+        $files = @(Get-ChildItem -Path $historyDir -Filter 'run-*.json' -ErrorAction SilentlyContinue |
+                   Sort-Object Name -Descending)
+        if ($files.Count -gt 10) {
+            foreach ($old in $files[10..($files.Count - 1)]) {
+                Remove-Item -LiteralPath $old.FullName -Force -ErrorAction SilentlyContinue
+            }
+        }
+    } catch { }
+}
+
+function Get-FindingKey($f) {
+    $stable = [regex]::Replace([string]$f.message, '[0-9]+', '')
+    return "$($f.rule)|$($f.source)|$stable"
+}
+
+# The markdown report gains a "Since the previous run" section - the same
+# comparison the window shows, for people who only ever read the file.
+function Append-ReportDelta($res, $prev) {
+    if (-not $prev -or -not $prev.findings -or -not $res.report) { return }
+    try {
+        $path = $res.report
+        if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $rootDir $path }
+        if (-not (Test-Path $path)) { return }
+
+        $prevKeys = @{}
+        foreach ($f in $prev.findings) { $prevKeys[(Get-FindingKey $f)] = $true }
+        $curKeys = @{}
+        foreach ($f in $res.findings) { $curKeys[(Get-FindingKey $f)] = $true }
+
+        $new  = @($res.findings | Where-Object { -not $prevKeys.ContainsKey((Get-FindingKey $_)) })
+        $gone = @($prev.findings | Where-Object { -not $curKeys.ContainsKey((Get-FindingKey $_)) })
+
+        $lines = @('', '## Since the previous run', '')
+        if (-not $new.Count -and -not $gone.Count) {
+            $lines += '_No changes since the previous run._'
+        } else {
+            $lines += ('- New: {0} &middot; resolved: {1}' -f $new.Count, $gone.Count)
+            if ($new.Count) {
+                $lines += @('', '### New findings')
+                foreach ($f in $new) {
+                    $lines += ('- **{0}** {1} &mdash; {2}' -f $f.severity.ToUpperInvariant(), $f.source, $f.message)
+                }
+            }
+            if ($gone.Count) {
+                $lines += @('', '### Resolved since the last run')
+                foreach ($f in $gone) { $lines += ('- {0} &mdash; {1}' -f $f.source, $f.message) }
+            }
+        }
+        $lines += ''
+        Start-Sleep -Milliseconds 150
+        Add-Content -Path $path -Value ($lines -join "`r`n") -Encoding UTF8
+    } catch { }
+}
+
+function Show-Finish-Balloon {
+    try {
+        if (-not $script:trayIcon -or -not $script:settings.notify) { return }
+        if (-not $script:result) { return }
+        $c = $script:result.counts
+        $ru = ($script:settings.lang -eq 'ru')
+        $health = $script:result.health
+        $text = if ($ru) {
+            "Здоровье $health/100 — критично: $($c.critical), внимание: $($c.warning)"
+        } else {
+            "Health $health/100 — critical: $($c.critical), warning: $($c.warning)"
+        }
+        $title = if ($ru) { 'WinHealthAudit — проверка завершена' } else { 'WinHealthAudit — audit finished' }
+        $script:trayIcon.ShowBalloonTip(4000, $title, $text, [System.Windows.Forms.ToolTipIcon]::Info)
+    } catch { }
+}
+
+$script:history = @(Read-History)
 
 function Update-Run {
     if ($script:phase -ne 'running' -or -not $script:job) { return }
@@ -163,6 +280,8 @@ function Update-Run {
             $script:result    = $jsonLine | ConvertFrom-Json
             $script:prevResult = Get-PrevResult
             Save-LastResult $script:result
+            Append-ReportDelta $script:result $script:prevResult
+            Add-History $script:result
             $script:phase     = 'done'
             $script:errorText = ''
         } catch {
@@ -176,6 +295,7 @@ function Update-Run {
 
     Remove-Job -Job $script:job -Force -ErrorAction SilentlyContinue
     $script:job = $null
+    if ($script:phase -eq 'done') { Show-Finish-Balloon }
 }
 
 function Start-Run([int]$days) {
@@ -241,6 +361,7 @@ function Get-State {
         machine  = $env:COMPUTERNAME
         elevated = $elevated
         settings = $script:settings
+        history  = @($script:history)
     }
 }
 
@@ -465,7 +586,12 @@ function Handle-Request($stream, [string]$method, [string]$target) {
 
         '/api/hide' {
             $key = ''
-            if ($query -match 'k=(.*)$') { $key = [Uri]::UnescapeDataString($Matches[1]) }
+            if ($query -match 'r=([^&]*)') {
+                $rule = [Uri]::UnescapeDataString($Matches[1])
+                if ($rule) { $key = 'rule:' + $rule }
+            } elseif ($query -match 'k=(.*)$') {
+                $key = [Uri]::UnescapeDataString($Matches[1])
+            }
             if ($key) {
                 $list = @()
                 if ($script:settings.hidden) { $list = @($script:settings.hidden | Where-Object { $_ }) }
@@ -478,6 +604,21 @@ function Handle-Request($stream, [string]$method, [string]$target) {
                 Save-Settings
             }
             Send-Json $stream $script:settings
+        }
+
+        '/api/history/run' {
+            $id = ''
+            if ($query -match 'i=(\d+)') { $id = $Matches[1] }
+            $file = Join-Path $historyDir ("run-$id.json")
+            if ($id -and (Test-Path -LiteralPath $file)) {
+                try {
+                    Send-Json $stream ([System.IO.File]::ReadAllText($file) | ConvertFrom-Json)
+                } catch {
+                    Send-Text $stream '500 Internal Server Error' 'unreadable snapshot'
+                }
+            } else {
+                Send-Text $stream '404 Not Found' 'no such run'
+            }
         }
 
         '/api/run' {

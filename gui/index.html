@@ -299,6 +299,48 @@
   }
   .hidebtn:hover { color: var(--fg); border-color: rgba(255,255,255,.5); }
 
+  .hist-banner {
+    display: flex; align-items: center; gap: 18px;
+    padding: 10px 4px 12px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--hair);
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  .hist-wrap { padding-top: 6px; }
+
+  .hist-stats {
+    display: flex; gap: 56px; padding: 14px 4px 4px;
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint);
+  }
+  .hist-stats b { color: var(--fg); font-weight: 400; margin-left: 10px; }
+
+  .spark-box { position: relative; margin: 16px 0 6px; height: 130px; }
+  .spark-box svg { width: 100%; height: 130px; display: block; }
+  .spark-axis {
+    position: absolute; left: 0; font-size: 9px; letter-spacing: .14em;
+    color: var(--faint); background: var(--bg); padding: 1px 5px;
+  }
+  .spark-axis.top { top: -4px; }
+  .spark-axis.bottom { bottom: -4px; }
+
+  .hist-table { width: 100%; border-collapse: collapse; }
+  .hist-table th {
+    font-size: 9px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--faint); font-weight: 400; text-align: left;
+    padding: 14px 12px 8px; border-bottom: 1px solid var(--hair);
+  }
+  .hist-table td {
+    font-size: 13px; padding: 11px 12px;
+    border-bottom: 1px solid var(--hair);
+    font-variant-numeric: tabular-nums;
+  }
+  .hist-table th.num, .hist-table td.num { text-align: right; }
+  .hist-table tr.clickable { cursor: pointer; }
+  .hist-table tr.clickable:hover td { background: rgba(255,255,255,.05); }
+  .hist-table td .delta-up { color: var(--fg); }
+  .hist-table td .delta-down { color: var(--faint); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
+
   .hint { padding: 26px 6px; color: var(--faint); font-size: 14px; }
 
   .check-item { display: flex; align-items: baseline; gap: 22px; padding: 15px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
@@ -415,6 +457,12 @@
                 <span class="hintline" data-i18n="set.startwin.hint">Adds one entry for this app in your user startup.</span></span>
             </label>
 
+            <label class="check">
+              <input type="checkbox" id="set-notify" checked>
+              <span><span data-i18n="set.notify">Notify when a run finishes</span>
+                <span class="hintline" data-i18n="set.notify.hint">A tray balloon with the health score.</span></span>
+            </label>
+
             <div class="set-row" style="display:block">
               <label data-i18n="set.folder">Reports folder</label>
               <div class="folder-row">
@@ -455,6 +503,7 @@
       <nav class="tabs">
         <button class="tab active" data-page="findings" data-i18n="tab.findings">Findings</button>
         <button class="tab" data-page="checks" data-i18n="tab.checks">Checks</button>
+        <button class="tab" data-page="history" data-i18n="tab.history">History</button>
         <button class="tab" data-page="log" data-i18n="tab.log">Log</button>
       </nav>
       <div class="filters">
@@ -466,6 +515,10 @@
 
     <main class="content">
       <div class="list" id="page-findings">
+        <div class="hist-banner hidden" id="hist-banner">
+          <span id="hist-banner-text"></span>
+          <button class="pill small" id="hist-back" data-i18n="hist.back">Back to current</button>
+        </div>
         <div class="findbar hidden" id="findbar">
           <input class="find-input" id="find-filter" type="search" autocomplete="off" spellcheck="false"
                  data-i18n-ph="find.filter" placeholder="filter findings…">
@@ -476,6 +529,7 @@
         <div id="find-rows"></div>
       </div>
       <div class="checks hidden" id="page-checks"></div>
+      <div class="list hidden" id="page-history"></div>
       <div class="log hidden" id="page-log"></div>
     </main>
 
@@ -548,9 +602,29 @@
       "btn.hidden": "hidden",
       "delta.line": "{n} new since the last run · {m} resolved",
       "act.hide": "Hide this finding",
+      "act.hideRule": "Hide all of this kind",
       "tab.findings": "Findings",
       "tab.checks": "Checks",
+      "tab.history": "History",
       "tab.log": "Log",
+      "set.notify": "Notify when a run finishes",
+      "set.notify.hint": "A tray balloon with the health score.",
+      "hist.empty": "runs appear here after every audit — health over time, newest first.",
+      "hist.back": "Back to current",
+      "hist.viewing": "viewing run {ts} — read-only",
+      "hist.runs": "runs",
+      "hist.stat.avg": "avg",
+      "hist.stat.best": "best",
+      "hist.stat.worst": "worst",
+      "hist.col.ts": "Run",
+      "hist.col.days": "Window",
+      "hist.col.health": "Health",
+      "hist.col.delta": "Δ",
+      "hist.col.crit": "C",
+      "hist.col.warn": "W",
+      "hist.col.info": "I",
+      "hist.col.find": "Findings",
+      "hist.col.secs": "Sec",
       "val.admin": "administrator",
       "val.noadmin": "no admin rights",
       "common.copy": "copy",
@@ -593,7 +667,7 @@
       "tut.1.t": "One audit in a few seconds",
       "tut.1.d": "Press <b>Run audit</b>: nine read-only checks look at disks, event logs, hardware errors, drivers and startup. Nothing on the computer is changed.",
       "tut.2.t": "Read what it found",
-      "tut.2.d": "Findings are sorted worst first; the pills on the right filter by severity. <b>Checks</b> shows what every check looked at, <b>Log</b> shows live progress.",
+      "tut.2.d": "Findings are sorted worst first; the pills on the right filter by severity. <b>Checks</b> shows what every check looked at, <b>History</b> tracks the score over time, <b>Log</b> shows live progress.",
       "tut.3.t": "Keep the report",
       "tut.3.d": "<b>Open</b> or <b>save</b> the markdown report, copy a summary for a forum post. <b>Settings</b> has language, default window and startup options."
     },
@@ -615,9 +689,29 @@
       "btn.hidden": "скрытые",
       "delta.line": "новых с прошлого раза: {n} · исчезло: {m}",
       "act.hide": "Скрыть эту находку",
+      "act.hideRule": "Скрыть все такие",
       "tab.findings": "Находки",
       "tab.checks": "Проверки",
+      "tab.history": "История",
       "tab.log": "Журнал",
+      "set.notify": "Уведомлять о завершении проверки",
+      "set.notify.hint": "Пузырь в трее с оценкой здоровья.",
+      "hist.empty": "запуски появятся здесь после каждого аудита — здоровье во времени, сверху новые.",
+      "hist.back": "К текущему",
+      "hist.viewing": "просмотр запуска {ts} — только чтение",
+      "hist.runs": "запусков",
+      "hist.stat.avg": "средн",
+      "hist.stat.best": "лучш",
+      "hist.stat.worst": "худш",
+      "hist.col.ts": "Запуск",
+      "hist.col.days": "Окно",
+      "hist.col.health": "Здоровье",
+      "hist.col.delta": "Δ",
+      "hist.col.crit": "К",
+      "hist.col.warn": "В",
+      "hist.col.info": "И",
+      "hist.col.find": "Находок",
+      "hist.col.secs": "Сек",
       "val.admin": "администратор",
       "val.noadmin": "без админ-прав",
       "common.copy": "копировать",
@@ -660,7 +754,7 @@
       "tut.1.t": "Одна проверка за пару секунд",
       "tut.1.d": "Нажмите <b>«Запустить»</b>: девять проверок без изменения системы посмотрят диски, журналы событий, аппаратные ошибки, драйверы и автозагрузку. Компьютер ничего не меняется.",
       "tut.2.t": "Читайте находки",
-      "tut.2.d": "Находки отсортированы от худших; пилюли справа фильтруют по серьёзности. <b>«Проверки»</b> — что смотрел каждый тест, <b>«Журнал»</b> — прогресс в реальном времени.",
+      "tut.2.d": "Находки отсортированы от худших; пилюли справа фильтруют по серьёзности. <b>«Проверки»</b> — что смотрел каждый тест, <b>«История»</b> — динамика оценки, <b>«Журнал»</b> — прогресс в реальном времени.",
       "tut.3.t": "Сохраните отчёт",
       "tut.3.d": "<b>Откройте</b> или <b>сохраните</b> markdown-отчёт, скопируйте сводку для форума. В <b>«Настройках»</b> — язык, окно по умолчанию и автозапуск.",
 
@@ -746,13 +840,14 @@
   /* ---------------------------------------------------------------- state */
   let view = {
     phase: "idle", days: 14, done: 0, total: 0, current: "", log: [],
-    result: null, error: "", machine: "", elevated: false,
-    settings: { days: 14, autoRun: false, lang: "en", out: "", startWithWindows: false }
+    result: null, error: "", machine: "", elevated: false, history: [],
+    settings: { days: 14, autoRun: false, lang: "en", out: "", startWithWindows: false, notify: true }
   };
   let page = "findings";
   let introSlide = 0;
   let filterText = "";
   let showHidden = false;
+  let historyResult = null;   // a snapshot from the History tab, read-only
   const off = new Set();
   const expanded = new Set();
   const params = new URLSearchParams(location.search);
@@ -790,6 +885,7 @@
     if (s.lang === "ru" || s.lang === "en") lang = s.lang;
     document.getElementById("set-autorun").checked = !!s.autoRun;
     document.getElementById("set-startwin").checked = !!s.startWithWindows;
+    document.getElementById("set-notify").checked = s.notify !== false;
     const folder = document.getElementById("set-out");
     if (document.activeElement !== folder) folder.value = s.out || "";
     document.querySelectorAll("#seg-days button").forEach(b =>
@@ -801,6 +897,10 @@
 
   /* -------------------------------------------------------------- render */
   function render() {
+    // While an old run is open from the History tab, every panel below shows
+    // that snapshot; the live state comes back as soon as it is closed.
+    const live = view.result;
+    if (historyResult) view.result = historyResult;
     const result = view.result;
     const counts = result ? result.counts : null;
 
@@ -808,6 +908,13 @@
     document.getElementById("elevation").textContent =
       view.elevated ? t("val.admin") : t("val.noadmin");
     renderDays();
+
+    const banner = document.getElementById("hist-banner");
+    banner.classList.toggle("hidden", !historyResult);
+    if (historyResult) {
+      document.getElementById("hist-banner-text").textContent =
+        t("hist.viewing", { ts: historyResult.generated || "?" });
+    }
 
     set("n-health", counts && result.health !== undefined ? result.health + "/100" : "–");
     set("n-critical", counts ? counts.critical : "–");
@@ -830,7 +937,10 @@
     renderStatus();
     renderFindings();
     renderChecks();
+    renderHistory();
     renderLog();
+
+    view.result = live;
   }
 
   function set(id, value) {
@@ -879,7 +989,7 @@
     return (finding.rule || "") + "|" + finding.source + "|" + stable;
   }
 
-  function detailHtml(finding, result, key) {
+  function detailHtml(finding, result, key, live) {
     const lines = [];
     const checked = checkDetailOf(finding, result);
     if (checked) lines.push(["det.checked", checked]);
@@ -892,9 +1002,16 @@
       '<div class="dline"><span class="dk">' + escapeHtml(t(pair[0])) + "</span>" +
       '<span class="dv">' + escapeHtml(pair[1]) + "</span></div>"
     ).join("") +
-      '<div class="dline"><span class="dk"></span><span class="dv">' +
-        '<button class="hidebtn" data-hide="' + encodeURIComponent(key) + '">' +
-        escapeHtml(t("act.hide")) + "</button></span></div>" +
+      (live
+        ? '<div class="dline"><span class="dk"></span><span class="dv">' +
+            '<button class="hidebtn" data-hide="' + encodeURIComponent(key) + '">' +
+            escapeHtml(t("act.hide")) + "</button>" +
+            (finding.rule
+              ? ' <button class="hidebtn" data-hiderule="' + encodeURIComponent(finding.rule) + '">' +
+                escapeHtml(t("act.hideRule")) + "</button>"
+              : "") +
+          "</span></div>"
+        : "") +
     "</div>";
   }
 
@@ -924,6 +1041,7 @@
     }
 
     bar.classList.remove("hidden");
+    const live = !historyResult;
 
     // hidden findings (the user pressed "hide this finding" on a rule)
     const hiddenList = [].concat((view.settings && view.settings.hidden) || []).filter(Boolean);
@@ -937,7 +1055,7 @@
     let newKeys = null;
     let resolved = 0;
     const prev = view.prev;
-    if (prev && prev.findings) {
+    if (live && prev && prev.findings) {
       const prevKeys = new Set(prev.findings.map(findingKey));
       const curKeys = new Set(result.findings.map(findingKey));
       newKeys = new Set();
@@ -958,7 +1076,8 @@
     const needle = filterText.trim().toLowerCase();
     let rows = result.findings.filter(f => !off.has(f.severity));
     const total = rows.length;
-    rows = rows.filter(f => showHidden || !hiddenSet.has(findingKey(f)));
+    if (live) rows = rows.filter(f =>
+      showHidden || !(hiddenSet.has(findingKey(f)) || (f.rule && hiddenSet.has("rule:" + f.rule))));
     if (needle) {
       rows = rows.filter(f =>
         (f.source + " " + f.message + " " + (f.evidence || "") + " " +
@@ -974,7 +1093,7 @@
     box.innerHTML = rows.map(f => {
       const key = findingKey(f);
       const open = expanded.has(key);
-      const isNew = newKeys && newKeys.has(key);
+      const isNew = live && newKeys && newKeys.has(key);
       return '<div class="row ' + f.severity + (open ? " open" : "") + '" data-key="' +
           encodeURIComponent(key) + '" tabindex="0" role="button" aria-expanded="' + (open ? "true" : "false") + '">' +
         '<div class="sev">' + escapeHtml(t("sev." + f.severity)) +
@@ -983,7 +1102,7 @@
           '<div class="src">' + escapeHtml(f.source) + "</div>" +
           '<div class="msg">' + escapeHtml(f.message) + "</div>" +
           (f.evidence ? '<div class="note">' + escapeHtml(f.evidence) + "</div>" : "") +
-          detailHtml(f, result, key) +
+          detailHtml(f, result, key, live) +
         "</div>" +
         '<div class="act">' +
           '<button class="copy" data-copy="' + encodeURIComponent(copyPayload(f)) + '">' +
@@ -1015,10 +1134,17 @@
       };
     });
 
-    box.querySelectorAll(".hidebtn").forEach(button => {
+    box.querySelectorAll(".hidebtn[data-hide]").forEach(button => {
       button.onclick = event => {
         event.stopPropagation();
         post("/api/hide?k=" + button.dataset.hide);
+      };
+    });
+
+    box.querySelectorAll(".hidebtn[data-hiderule]").forEach(button => {
+      button.onclick = event => {
+        event.stopPropagation();
+        post("/api/hide?r=" + button.dataset.hiderule);
       };
     });
   }
@@ -1040,6 +1166,104 @@
         '<div class="count">' + escapeHtml(t("counts.n", { n: check.findings, m: check.notes })) + "</div>" +
       "</div>"
     ).join("");
+  }
+
+  function renderHistory() {
+    const box = document.getElementById("page-history");
+    const rows = [].concat(view.history || []);
+
+    if (!rows.length) {
+      box.innerHTML = '<div class="hint">' + escapeHtml(t("hist.empty")) + "</div>";
+      return;
+    }
+
+    let best = null, worst = null, sum = 0, n = 0;
+    rows.forEach(r => {
+      if (r.health === null || r.health === undefined) return;
+      const h = Number(r.health);
+      if (best === null || h > best) best = h;
+      if (worst === null || h < worst) worst = h;
+      sum += h; n++;
+    });
+
+    // sparkline: oldest on the left, newest on the right
+    const chrono = rows.slice().reverse();
+    const W = box.clientWidth || 600;
+    const H = 130, pad = 8;
+    const yFor = h => pad + (1 - h / 100) * (H - 2 * pad);
+    const pts = chrono.map((r, i) => {
+      const x = chrono.length > 1 ? (i / (chrono.length - 1)) * W : W / 2;
+      return [x, yFor(Math.max(0, Math.min(100, Number(r.health || 0))))];
+    });
+    const poly = pts.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+    const dots = pts.map(p =>
+      '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.5"/>').join("");
+
+    const table = rows.map((r, i) => {
+      const next = rows[i + 1];   // the run before this one (older)
+      let delta = "·";
+      if (next && r.health != null && next.health != null) {
+        const d = Number(r.health) - Number(next.health);
+        delta = d > 0 ? "▲ +" + d : (d < 0 ? "▼ " + d : "· 0");
+      }
+      return '<tr class="clickable" data-id="' + r.id + '">' +
+        "<td>" + escapeHtml(r.ts || "") + "</td>" +
+        '<td class="num">' + (r.days != null ? r.days : "–") + "</td>" +
+        '<td class="num">' + (r.health != null ? r.health : "–") + "</td>" +
+        '<td class="num ' + (String(delta).indexOf("▼") === 0 ? "delta-down" : "delta-up") + '">' + delta + "</td>" +
+        '<td class="num">' + (r.critical != null ? r.critical : "–") + "</td>" +
+        '<td class="num">' + (r.warning != null ? r.warning : "–") + "</td>" +
+        '<td class="num">' + (r.info != null ? r.info : "–") + "</td>" +
+        '<td class="num">' + (r.findings != null ? r.findings : "–") + "</td>" +
+        '<td class="num">' + (r.seconds != null ? r.seconds : "–") + "</td>" +
+      "</tr>";
+    }).join("");
+
+    box.innerHTML = '<div class="hist-wrap">' +
+      '<div class="hist-stats">' +
+        "<span>" + escapeHtml(t("hist.runs")) + "<b>" + rows.length + "</b></span>" +
+        "<span>" + escapeHtml(t("hist.stat.avg")) + "<b>" + (n ? Math.round(sum / n) : "–") + "</b></span>" +
+        "<span>" + escapeHtml(t("hist.stat.best")) + "<b>" + (best != null ? best : "–") + "</b></span>" +
+        "<span>" + escapeHtml(t("hist.stat.worst")) + "<b>" + (worst != null ? worst : "–") + "</b></span>" +
+      "</div>" +
+      '<div class="spark-box">' +
+        '<span class="spark-axis top">100</span>' +
+        '<span class="spark-axis bottom">0</span>' +
+        '<svg viewBox="0 0 ' + W + " " + H + '" width="100%" height="' + H + '" fill="none" ' +
+             'stroke="rgba(255,255,255,.55)" stroke-width="1.5">' +
+          '<line x1="0" y1="' + yFor(100).toFixed(1) + '" x2="' + W + '" y2="' + yFor(100).toFixed(1) +
+            '" stroke="rgba(255,255,255,.14)" stroke-width="1"/>' +
+          '<line x1="0" y1="' + yFor(0).toFixed(1) + '" x2="' + W + '" y2="' + yFor(0).toFixed(1) +
+            '" stroke="rgba(255,255,255,.14)" stroke-width="1"/>' +
+          (pts.length > 1 ? '<polyline points="' + poly + '"/>' : "") +
+          dots +
+        "</svg>" +
+      "</div>" +
+      '<table class="hist-table"><thead><tr>' +
+        "<th>" + escapeHtml(t("hist.col.ts")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.days")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.health")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.delta")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.crit")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.warn")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.info")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.find")) + "</th>" +
+        '<th class="num">' + escapeHtml(t("hist.col.secs")) + "</th>" +
+      "</tr></thead><tbody>" + table + "</tbody></table>" +
+    "</div>";
+
+    box.querySelectorAll("tr.clickable").forEach(tr => {
+      tr.onclick = async () => {
+        try {
+          const response = await fetch("/api/history/run?i=" + tr.dataset.id, { cache: "no-store" });
+          if (!response.ok) return;
+          historyResult = await response.json();
+          openPage("findings");
+          location.hash = "findings";
+          render();
+        } catch (error) { }
+      };
+    });
   }
 
   function renderLog() {
@@ -1080,7 +1304,7 @@
   }
 
   function copySummary() {
-    const result = view.result;
+    const result = historyResult || view.result;
     if (!result) return;
 
     const lines = [
@@ -1151,12 +1375,13 @@
 
   /* --------------------------------------------------------------- events */
   function openPage(name) {
-    if (!["findings", "checks", "log"].includes(name)) return;
+    if (!["findings", "checks", "history", "log"].includes(name)) return;
     page = name;
     document.querySelectorAll(".tab").forEach(tab =>
       tab.classList.toggle("active", tab.dataset.page === name));
-    ["findings", "checks", "log"].forEach(sheet =>
+    ["findings", "checks", "history", "log"].forEach(sheet =>
       document.getElementById("page-" + sheet).classList.toggle("hidden", sheet !== name));
+    render();
   }
 
   window.addEventListener("hashchange", () => openPage(location.hash.slice(1)));
@@ -1214,12 +1439,16 @@
     }
     if (event.key === "1") { openPage("findings"); location.hash = "findings"; return; }
     if (event.key === "2") { openPage("checks"); location.hash = "checks"; return; }
-    if (event.key === "3") { openPage("log"); location.hash = "log"; return; }
+    if (event.key === "3") { openPage("history"); location.hash = "history"; return; }
+    if (event.key === "4") { openPage("log"); location.hash = "log"; return; }
     if (event.key === "Escape") {
       if (findInput.value) {
         findInput.value = "";
         filterText = "";
         renderFindings();
+      } else if (historyResult) {
+        historyResult = null;
+        render();
       } else if (expanded.size) {
         expanded.clear();
         renderFindings();
@@ -1285,6 +1514,14 @@
 
   document.getElementById("set-startwin").onchange = event =>
     saveSetting("startWithWindows", event.target.checked ? "1" : "0");
+
+  document.getElementById("set-notify").onchange = event =>
+    saveSetting("notify", event.target.checked ? "1" : "0");
+
+  document.getElementById("hist-back").onclick = () => {
+    historyResult = null;
+    render();
+  };
 
   document.getElementById("set-out").onchange = event =>
     saveSetting("out", event.target.value.trim());

@@ -11,7 +11,7 @@ A read-only Windows health report — one executable, one markdown file.
 ![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square&logo=windows&logoColor=white)
 ![runtime](https://img.shields.io/badge/runtime-.NET%20Framework%204-512BD4?style=flat-square)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white)
-![version](https://img.shields.io/badge/version-1.2.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-1.3.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 [![build](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml/badge.svg)](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml)
 ![release](https://img.shields.io/github/v/release/wxrrry/ESLL-WinHealthAudit?style=flat-square&logo=github)
@@ -55,21 +55,31 @@ A read-only Windows health report — one executable, one markdown file.
   *where the finding came from* (log, event id, WMI class) and *what to do*
   about it — advice is shown in your interface language. A filter box above
   the list narrows it as you type; the rows are reachable with the keyboard.
-  A finding you are tired of looking at can be hidden with one click — and
-  un-hidden from the *hidden* chip next to the filter.
 - **Health score 0–100** in the header: every critical finding costs 8
   points, every warning 2. The same number goes into the JSON output and at
   the top of the markdown report, so it can be tracked over time.
 - **Since the last run** — a delta line over the findings list (`N new ·
   M resolved`) and a `NEW` badge on rows that were not there last time;
-  counts and percentages do not break the comparison.
-- **Hotkeys.** `R` re-runs the audit, `/` jumps into the filter, `1` `2` `3`
-  switch *Findings* / *Checks* / *Log*, `Esc` clears the filter or folds
-  everything back.
+  counts and percentages do not break the comparison. The markdown report
+  gains a *Since the previous run* section with the same diff.
+- **History tab** — every audit is remembered (summaries for 50 runs,
+  full snapshots for the last 10): a health sparkline over time, average /
+  best / worst, and a table with per-run counts and a `Δ` column. Click any
+  row to reopen that run read-only — the banner shows you are looking at the
+  past, and *Back to current* returns to the live state.
+- **Hide a whole rule**, not just one row — the expanded finding offers
+  *hide this finding* and *hide all of this kind*; hidden entries live in
+  `settings.json` and come back with the *hidden* chip.
+- **Tray balloon when a run finishes** with the health score and counts —
+  switchable in Settings.
+- **Hotkeys.** `R` re-runs the audit, `/` jumps into the filter, `1` `2`
+  `3` `4` switch *Findings* / *Checks* / *History* / *Log*, `Esc` clears
+  the filter, leaves the history view or folds everything back.
 - **Black and white, keyboard-friendly window** in an Edge `--app` view —
-  *Findings*, *Checks*, *Log*, report buttons, period and language pickers.
-  The logo lives in the taskbar and in the tray (open, run an audit, quit).
-  No Edge? The window opens in your default browser instead.
+  *Findings*, *Checks*, *History*, *Log*, report buttons, period and
+  language pickers. The logo lives in the taskbar and in the tray (open, run
+  an audit, quit). No Edge? The window opens in your default browser
+  instead.
 - **EN / RU interface.** The audit output stays in English (it is what the
   system logs say), the interface switches in Settings.
 - **Guided tour on first run** and a splash screen; both are replayable from
@@ -91,6 +101,14 @@ A read-only Windows health report — one executable, one markdown file.
 <p align="center">
   <em>Findings — health score, what changed since the last run, click a row to
   expand its source, what was checked and what to do.</em>
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/history.png" alt="History tab with the health sparkline and the run table" width="760">
+</p>
+
+<p align="center">
+  <em>History — health over time, per-run table, click a row to reopen it.</em>
 </p>
 
 <table align="center">
@@ -302,10 +320,19 @@ MIT — see [LICENSE](LICENSE).
 В шапке — **оценка здоровья 0–100** (каждая критическая находка снимает 8
 очков, каждая «внимание» — 2); она же попадает в JSON и в начало отчёта.
 Над списком — строка дельты с прошлого запуска («новых · исчезло») и бейдж
-**новая** у строк, которых не было вчера. Надоевшую находку можно скрыть
-кнопкой в раскрытой строке и вернуть обратно фильтром *скрытые*.
-Горячие клавиши: `R` — запуск, `/` — фильтр, `1` `2` `3` — вкладки, `Esc` —
-сброс.
+**новая** у строк, которых не было вчера; в markdown-отчёте появляется
+секция *Since the previous run*. Надоевшую находку можно скрыть кнопкой в
+раскрытой строке — одной или **сразу всех таких же** (по правилу) — и вернуть
+обратно фильтром *скрытые*.
+
+**Вкладка «История»** помнит прошлые запуски: спарклайн здоровья, средняя /
+лучшая / худшая оценка и таблица с дельтами — клик по строке открывает тот
+запуск заново (только чтение), баннер над списком показывает, что вы
+смотрите прошлое. По завершении проверки в трее всплывает пузырь с оценкой
+(отключается в настройках).
+
+Горячие клавиши: `R` — запуск, `/` — фильтр, `1` `2` `3` `4` — вкладки
+Находки / Проверки / История / Журнал, `Esc` — сброс.
 
 ## Что проверяется
 
