@@ -28,6 +28,20 @@ namespace WinHealthAudit
                 .Append("}");
             builder.Append(",\"health\":").Append(Health(results).ToString(CultureInfo.InvariantCulture));
 
+            builder.Append(",\"signals\":{");
+            var firstSignal = true;
+            foreach (var result in results)
+            {
+                foreach (var pair in result.Signals)
+                {
+                    if (!firstSignal) builder.Append(',');
+                    firstSignal = false;
+                    builder.Append(Quote(pair.Key)).Append(':')
+                        .Append(pair.Value.ToString("0.##", CultureInfo.InvariantCulture));
+                }
+            }
+            builder.Append('}');
+
             builder.Append(",\"checks\":[");
             for (var index = 0; index < results.Count; index++)
             {

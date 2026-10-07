@@ -10,6 +10,7 @@ namespace WinHealthAudit
             Detail = detail ?? string.Empty;
             Notes = new List<string>();
             Findings = new List<Finding>();
+            Signals = new Dictionary<string, double>();
         }
 
         public string Name { get; private set; }
@@ -19,6 +20,9 @@ namespace WinHealthAudit
         public List<string> Notes { get; private set; }
 
         public List<Finding> Findings { get; private set; }
+
+        /// <summary>Numeric samples the history tab charts over time (peak/min, % free, seconds...).</summary>
+        public Dictionary<string, double> Signals { get; private set; }
 
         public void Note(string text)
         {
@@ -41,6 +45,11 @@ namespace WinHealthAudit
             string rule = null, string detail = null, string advice = null)
         {
             Add(Severity.Critical, message, evidence, rule, detail, advice);
+        }
+
+        public void Signal(string key, double value)
+        {
+            Signals[key] = value;
         }
     }
 }

@@ -155,6 +155,7 @@
   .set-row .hintline { display: block; font-size: 11px; color: var(--faint); margin-top: 2px; }
 
   .seg { display: flex; gap: 4px; background: rgba(255,255,255,.05); border-radius: 999px; padding: 3px; }
+  #seg-rerun { width: fit-content; margin-top: 6px; }
   .seg button {
     border: 0; background: transparent; color: var(--faint);
     font: inherit; font-size: 11px; letter-spacing: .1em;
@@ -299,6 +300,13 @@
   }
   .hidebtn:hover { color: var(--fg); border-color: rgba(255,255,255,.5); }
 
+  .hidden-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 4px; }
+  .hidden-list .hidebtn {
+    text-transform: none; letter-spacing: .04em; text-align: left;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .hidden-list .hidebtn span { margin-left: 6px; opacity: .65; }
+
   .hist-banner {
     display: flex; align-items: center; gap: 18px;
     padding: 10px 4px 12px; margin-bottom: 4px;
@@ -340,6 +348,20 @@
   .hist-table tr.clickable:hover td { background: rgba(255,255,255,.05); }
   .hist-table td .delta-up { color: var(--fg); }
   .hist-table td .delta-down { color: var(--faint); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.35); }
+
+  .hist-trends { margin-top: 22px; padding: 16px 4px 4px; border-top: 1px solid var(--hair); }
+  .hist-trends-title {
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--faint); margin-bottom: 12px;
+  }
+  .trend-row { display: flex; align-items: center; gap: 16px; padding: 5px 0; font-size: 12px; color: var(--dim); }
+  .trend-label {
+    width: 130px; flex: none; color: var(--fg);
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  }
+  .trend-spark { width: 170px; height: 26px; flex: none; }
+  .trend-val { color: var(--fg); font-variant-numeric: tabular-nums; min-width: 84px; text-align: right; }
+  .trend-delta { min-width: 84px; font-variant-numeric: tabular-nums; color: var(--faint); }
 
   .hint { padding: 26px 6px; color: var(--faint); font-size: 14px; }
 
@@ -464,6 +486,23 @@
             </label>
 
             <div class="set-row" style="display:block">
+              <label data-i18n="set.rerun">Auto-repeat</label>
+              <div class="seg" id="seg-rerun">
+                <button data-rerun="0" data-i18n="rerun.off">off</button>
+                <button data-rerun="1" data-i18n="rerun.h1">1 h</button>
+                <button data-rerun="4" data-i18n="rerun.h4">4 h</button>
+                <button data-rerun="12" data-i18n="rerun.h12">12 h</button>
+              </div>
+              <span class="hintline" data-i18n="set.rerun.hint">Runs the audit again automatically while the window is open.</span>
+            </div>
+
+            <div class="set-row" style="display:block" id="hidden-row">
+              <label data-i18n="set.hidden">Hidden findings</label>
+              <div class="hidden-list" id="hidden-list"></div>
+              <button class="pill small" id="hidden-clear" data-i18n="btn.restore">Show all</button>
+            </div>
+
+            <div class="set-row" style="display:block">
               <label data-i18n="set.folder">Reports folder</label>
               <div class="folder-row">
                 <input type="text" id="set-out" data-i18n-ph="set.folder.ph" placeholder="default: %LOCALAPPDATA%\WinHealthAudit\reports">
@@ -556,7 +595,7 @@
 
       <div class="slide" data-slide="0">
         <h2 data-i18n="tut.1.t">One audit in a few seconds</h2>
-        <p data-i18n-html="tut.1.d">Press <b>Run audit</b>: nine read-only checks look at disks, event logs, hardware errors, drivers and startup. Nothing on the computer is changed.</p>
+        <p data-i18n-html="tut.1.d">Press <b>Run audit</b>: eleven read-only checks look at disks, event logs, hardware errors, drivers, startup, boot performance and gaming settings. Nothing on the computer is changed.</p>
       </div>
       <div class="slide hidden" data-slide="1">
         <h2 data-i18n="tut.2.t">Read what it found</h2>
@@ -609,6 +648,14 @@
       "tab.log": "Log",
       "set.notify": "Notify when a run finishes",
       "set.notify.hint": "A tray balloon with the health score.",
+      "set.rerun": "Auto-repeat",
+      "set.rerun.hint": "Runs the audit again automatically while the window is open.",
+      "rerun.off": "off",
+      "rerun.h1": "1 h",
+      "rerun.h4": "4 h",
+      "rerun.h12": "12 h",
+      "set.hidden": "Hidden findings",
+      "btn.restore": "Show all",
       "hist.empty": "runs appear here after every audit — health over time, newest first.",
       "hist.back": "Back to current",
       "hist.viewing": "viewing run {ts} — read-only",
@@ -625,6 +672,10 @@
       "hist.col.info": "I",
       "hist.col.find": "Findings",
       "hist.col.secs": "Sec",
+      "hist.trends": "Trends",
+      "hist.trend.whea": "WHEA/min",
+      "hist.trend.cfree": "C: free",
+      "hist.trend.boot": "Boot time",
       "val.admin": "administrator",
       "val.noadmin": "no admin rights",
       "common.copy": "copy",
@@ -638,7 +689,7 @@
       "hint.idle": "press run audit to check this machine.",
       "hint.running": "running — {msg}…",
       "hint.nofilter": "nothing matches the current filter.",
-      "hint.checks": "the nine checks appear here after a run.",
+      "hint.checks": "the eleven checks appear here after a run.",
       "hint.log": "the progress of the current run appears here.",
       "status.ready": "ready — press run audit to check this machine",
       "status.failed": "failed — {err}",
@@ -665,7 +716,7 @@
       "tut.start": "Start",
       "tut.back": "Back",
       "tut.1.t": "One audit in a few seconds",
-      "tut.1.d": "Press <b>Run audit</b>: nine read-only checks look at disks, event logs, hardware errors, drivers and startup. Nothing on the computer is changed.",
+      "tut.1.d": "Press <b>Run audit</b>: eleven read-only checks look at disks, event logs, hardware errors, drivers, startup, boot performance and gaming settings. Nothing on the computer is changed.",
       "tut.2.t": "Read what it found",
       "tut.2.d": "Findings are sorted worst first; the pills on the right filter by severity. <b>Checks</b> shows what every check looked at, <b>History</b> tracks the score over time, <b>Log</b> shows live progress.",
       "tut.3.t": "Keep the report",
@@ -696,6 +747,14 @@
       "tab.log": "Журнал",
       "set.notify": "Уведомлять о завершении проверки",
       "set.notify.hint": "Пузырь в трее с оценкой здоровья.",
+      "set.rerun": "Автоповтор",
+      "set.rerun.hint": "Повторять проверку автоматически, пока окно открыто.",
+      "rerun.off": "выкл",
+      "rerun.h1": "1 ч",
+      "rerun.h4": "4 ч",
+      "rerun.h12": "12 ч",
+      "set.hidden": "Скрытые находки",
+      "btn.restore": "Показать все",
       "hist.empty": "запуски появятся здесь после каждого аудита — здоровье во времени, сверху новые.",
       "hist.back": "К текущему",
       "hist.viewing": "просмотр запуска {ts} — только чтение",
@@ -712,6 +771,10 @@
       "hist.col.info": "И",
       "hist.col.find": "Находок",
       "hist.col.secs": "Сек",
+      "hist.trends": "Тренды",
+      "hist.trend.whea": "WHEA/мин",
+      "hist.trend.cfree": "C: свободно",
+      "hist.trend.boot": "Загрузка",
       "val.admin": "администратор",
       "val.noadmin": "без админ-прав",
       "common.copy": "копировать",
@@ -725,7 +788,7 @@
       "hint.idle": "нажмите запустить проверку этого компьютера.",
       "hint.running": "выполняется — {msg}…",
       "hint.nofilter": "ничего не подходит под фильтр.",
-      "hint.checks": "девять проверок появятся здесь после запуска.",
+      "hint.checks": "одиннадцать проверок появятся здесь после запуска.",
       "hint.log": "прогресс текущего запуска появится здесь.",
       "status.ready": "готово — нажмите запустить проверку этого компьютера",
       "status.failed": "ошибка — {err}",
@@ -752,7 +815,7 @@
       "tut.start": "Начать",
       "tut.back": "Назад",
       "tut.1.t": "Одна проверка за пару секунд",
-      "tut.1.d": "Нажмите <b>«Запустить»</b>: девять проверок без изменения системы посмотрят диски, журналы событий, аппаратные ошибки, драйверы и автозагрузку. Компьютер ничего не меняется.",
+      "tut.1.d": "Нажмите <b>«Запустить»</b>: одиннадцать проверок без изменения системы посмотрят диски, журналы событий, аппаратные ошибки, драйверы, автозагрузку, скорость загрузки и игровые настройки. Компьютер ничего не меняется.",
       "tut.2.t": "Читайте находки",
       "tut.2.d": "Находки отсортированы от худших; пилюли справа фильтруют по серьёзности. <b>«Проверки»</b> — что смотрел каждый тест, <b>«История»</b> — динамика оценки, <b>«Журнал»</b> — прогресс в реальном времени.",
       "tut.3.t": "Сохраните отчёт",
@@ -815,7 +878,13 @@
       "adv.MsiInstaller/11708": "запустите установщик от имени администратора и посмотрите код возврата в журнале «Приложения»",
       "adv.MsiInstaller/11724": "запустите установщик от имени администратора; при необходимости восстановите продукт через Параметры → Приложения",
       "adv.Microsoft-Windows-CAPI2/513": "обычно нет корневого сертификата или сбиты часы — проверьте системное время и обновите Windows",
-      "adv.Bonjour Service/100": "другое устройство заняло это сетевое имя — переименуйте ПК: Параметры → Система → О системе"
+      "adv.Bonjour Service/100": "другое устройство заняло это сетевое имя — переименуйте ПК: Параметры → Система → О системе",
+      "adv.gaming.refresh-avail": "Параметры → Система → Дисплей → Дополнительные параметры дисплея — выберите максимально возможную частоту обновления",
+      "adv.gaming.refresh-low": "проверьте драйвер и кабель монитора: на 60 Гц игра ощущается медленнее даже на быстрой видеокарте",
+      "adv.gaming.gamemode-off": "Параметры → Игры → Режим игры — включите его, чтобы Windows отдавала игре приоритет",
+      "adv.gaming.capture-on": "Параметры → Игры → Записи — отключите фоновую запись на время игры",
+      "adv.gaming.power-saver": "Параметры → Система → Питение — выберите «Сбалансированное» или «Высокая производительность»",
+      "adv.boot.degraded": "Параметры → Приложения → Автозагрузка — отключите ненужные программы, перезагрузитесь и проверьте снова"
     }
   };
 
@@ -841,7 +910,7 @@
   let view = {
     phase: "idle", days: 14, done: 0, total: 0, current: "", log: [],
     result: null, error: "", machine: "", elevated: false, history: [],
-    settings: { days: 14, autoRun: false, lang: "en", out: "", startWithWindows: false, notify: true }
+    settings: { days: 14, autoRun: false, lang: "en", out: "", startWithWindows: false, notify: true, rerun: 0, hidden: [] }
   };
   let page = "findings";
   let introSlide = 0;
@@ -890,9 +959,45 @@
     if (document.activeElement !== folder) folder.value = s.out || "";
     document.querySelectorAll("#seg-days button").forEach(b =>
       b.classList.toggle("on", Number(b.dataset.days) === Number(s.days)));
+    document.querySelectorAll("#seg-rerun button").forEach(b =>
+      b.classList.toggle("on", Number(b.dataset.rerun) === Number(s.rerun || 0)));
     document.querySelectorAll("#seg-lang button").forEach(b =>
       b.classList.toggle("on", b.dataset.lang === lang));
+    renderHiddenList();
     applyLang();
+  }
+
+  function hiddenLabel(key) {
+    const result = view.result;
+    const findings = (result && result.findings) || [];
+
+    if (key.indexOf("rule:") === 0) {
+      const rule = key.slice(5);
+      const match = findings.find(f => f.rule === rule);
+      if (match) return match.source + ": " + match.message;
+      return rule;
+    }
+
+    const match = findings.find(f => findingKey(f) === key);
+    if (match) return match.message;
+    const parts = key.split("|");   // rule|source|message - fall back to the source
+    return parts[1] || key;
+  }
+
+  function renderHiddenList() {
+    const row = document.getElementById("hidden-row");
+    const list = ((view.settings || {}).hidden) || [];
+    row.classList.toggle("hidden", !list.length);
+
+    const box = document.getElementById("hidden-list");
+    box.innerHTML = list.map(key =>
+      '<button class="hidebtn" data-unhide="' + encodeURIComponent(key) + '" title="' +
+        escapeHtml(hiddenLabel(key)) + '">' + escapeHtml(hiddenLabel(key)) + " <span>×</span></button>"
+    ).join("");
+
+    box.querySelectorAll("[data-unhide]").forEach(button => {
+      button.onclick = () => post("/api/hide?k=" + button.dataset.unhide);
+    });
   }
 
   /* -------------------------------------------------------------- render */
@@ -1168,6 +1273,57 @@
     ).join("");
   }
 
+  function trendsHtml(chrono) {
+    const defs = [
+      { key: "wheaPerMin", label: t("hist.trend.whea"), unit: "/min" },
+      { key: "cFree", label: t("hist.trend.cfree"), unit: "%" },
+      { key: "bootSec", label: t("hist.trend.boot"), unit: "s" }
+    ];
+
+    const rows = [];
+
+    defs.forEach(def => {
+      const pts = [];
+      chrono.forEach((r, i) => {
+        const signals = r.signals;
+        if (signals && signals[def.key] !== null && signals[def.key] !== undefined) {
+          pts.push([i, Number(signals[def.key])]);
+        }
+      });
+      if (pts.length < 2) return;   // a trend needs at least two samples
+
+      const values = pts.map(p => p[1]);
+      const min = Math.min.apply(null, values);
+      const max = Math.max.apply(null, values);
+      const span = (max - min) || 1;
+
+      const W = 170, H = 26, P = 4;
+      const coords = pts.map(p => {
+        const x = chrono.length > 1 ? (p[0] / (chrono.length - 1)) * W : W / 2;
+        const y = P + (1 - (p[1] - min) / span) * (H - 2 * P);
+        return x.toFixed(1) + "," + y.toFixed(1);
+      });
+
+      const last = Math.round(values[values.length - 1] * 10) / 10;
+      const delta = Math.round((last - values[0]) * 10) / 10;
+      const arrow = delta > 0 ? "▲ +" + delta : (delta < 0 ? "▼ " + delta : "· 0");
+
+      rows.push('<div class="trend-row">' +
+        '<span class="trend-label">' + escapeHtml(def.label) + "</span>" +
+        '<svg class="trend-spark" viewBox="0 0 ' + W + " " + H + '" fill="none" ' +
+          'stroke="rgba(255,255,255,.55)" stroke-width="1.5">' +
+          '<polyline points="' + coords.join(" ") + '"/>' +
+        "</svg>" +
+        '<span class="trend-val">' + last + def.unit + "</span>" +
+        '<span class="trend-delta">' + arrow + "</span>" +
+      "</div>");
+    });
+
+    if (!rows.length) return "";
+    return '<div class="hist-trends"><div class="hist-trends-title">' +
+      escapeHtml(t("hist.trends")) + "</div>" + rows.join("") + "</div>";
+  }
+
   function renderHistory() {
     const box = document.getElementById("page-history");
     const rows = [].concat(view.history || []);
@@ -1239,6 +1395,7 @@
           dots +
         "</svg>" +
       "</div>" +
+      trendsHtml(chrono) +
       '<table class="hist-table"><thead><tr>' +
         "<th>" + escapeHtml(t("hist.col.ts")) + "</th>" +
         '<th class="num">' + escapeHtml(t("hist.col.days")) + "</th>" +
@@ -1421,7 +1578,7 @@
     }
   };
 
-  /* R = re-run, / = focus the filter, 1/2/3 = tabs, Esc = unwind */
+  /* R = re-run, / = focus the filter, 1/2/3/4 = tabs, Esc = unwind */
   document.addEventListener("keydown", event => {
     const el = event.target;
     const typing = el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
@@ -1509,6 +1666,10 @@
     };
   });
 
+  document.querySelectorAll("#seg-rerun button").forEach(button => {
+    button.onclick = () => saveSetting("rerun", button.dataset.rerun);
+  });
+
   document.getElementById("set-autorun").onchange = event =>
     saveSetting("autoRun", event.target.checked ? "1" : "0");
 
@@ -1525,6 +1686,8 @@
 
   document.getElementById("set-out").onchange = event =>
     saveSetting("out", event.target.value.trim());
+
+  document.getElementById("hidden-clear").onclick = () => post("/api/hide?all=1");
 
   document.getElementById("set-open-folder").onclick = () => {
     flash(t("status.folder"));

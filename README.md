@@ -11,7 +11,7 @@ A read-only Windows health report — one executable, one markdown file.
 ![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square&logo=windows&logoColor=white)
 ![runtime](https://img.shields.io/badge/runtime-.NET%20Framework%204-512BD4?style=flat-square)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white)
-![version](https://img.shields.io/badge/version-1.3.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-1.4.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 [![build](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml/badge.svg)](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml)
 ![release](https://img.shields.io/github/v/release/wxrrry/ESLL-WinHealthAudit?style=flat-square&logo=github)
@@ -49,7 +49,7 @@ A read-only Windows health report — one executable, one markdown file.
   writes findings into a markdown report. No service is stopped, no setting is
   changed, no log is cleared, no registry key is written (except an optional
   *Start with Windows* entry you switch on yourself).
-- **Nine checks, one severity scale.** `Info < Warning < Critical`, findings
+- **Eleven checks, one severity scale.** `Info < Warning < Critical`, findings
   sorted so the worst ones sit on top, each with its source and evidence.
 - **Click a finding to open it.** Three lines appear: *what was checked*,
   *where the finding came from* (log, event id, WMI class) and *what to do*
@@ -64,14 +64,22 @@ A read-only Windows health report — one executable, one markdown file.
   gains a *Since the previous run* section with the same diff.
 - **History tab** — every audit is remembered (summaries for 50 runs,
   full snapshots for the last 10): a health sparkline over time, average /
-  best / worst, and a table with per-run counts and a `Δ` column. Click any
+  best / worst, and a table with per-run counts and a `Δ` column. Above the
+  table sit **trend rows** — tiny sparklines for the numbers that matter
+  (WHEA errors per minute, free space on `C:`, boot time), each with its
+  current value and a delta since the first run in view. Click any
   row to reopen that run read-only — the banner shows you are looking at the
   past, and *Back to current* returns to the live state.
 - **Hide a whole rule**, not just one row — the expanded finding offers
   *hide this finding* and *hide all of this kind*; hidden entries live in
-  `settings.json` and come back with the *hidden* chip.
+  `settings.json`, are listed under a *hidden findings* section in Settings
+  with one-click restore, and come back with the *hidden* chip.
+- **Auto-repeat** — a Settings segment (off / 1 h / 4 h / 12 h) re-runs the
+  audit on its own while the window stays open, so the history keeps
+  collecting fresh samples in the background.
 - **Tray balloon when a run finishes** with the health score and counts —
-  switchable in Settings.
+  switchable in Settings. When health drops, the balloon turns into a
+  warning that names the change instead.
 - **Hotkeys.** `R` re-runs the audit, `/` jumps into the filter, `1` `2`
   `3` `4` switch *Findings* / *Checks* / *History* / *Log*, `Esc` clears
   the filter, leaves the history view or folds everything back.
@@ -135,6 +143,8 @@ A read-only Windows health report — one executable, one markdown file.
 | Device manager | problem codes with a plain-language description |
 | Processes, services and startup | top CPU and memory, stopped automatic services, Run keys |
 | System state | pending reboot, power scheme, Defender, activation |
+| Gaming profile | display refresh rate, Game Mode, capture/GameDVR, hardware-accelerated GPU scheduling, power plan |
+| Boot performance | boot sessions and duration (elevated: degraded boots from Diagnostics-Performance), Fast Startup state |
 
 Severity is `Info` < `Warning` < `Critical`. Findings you have not seen before
 are still reported, just at a lower priority than the ones with a known cause.
@@ -173,6 +183,7 @@ takes over the local port from the plain one automatically.
 | Period | how far back the audit looks: 7 / 14 / 30 / 90 days |
 | Language | EN / RU interface, remembered between launches |
 | Run audit at launch | start a run as soon as the window opens |
+| Auto-repeat | re-run the audit every 1 / 4 / 12 hours while the window is open |
 | Start with Windows | adds/removes a `WinHealthAudit` entry under `HKCU\...\Run` |
 | Report folder | where markdown reports are written |
 
@@ -183,7 +194,7 @@ Notepad).
 
 ## Command line
 
-The same nine checks without the window — `WinHealthAudit.Core.exe`:
+The same eleven checks without the window — `WinHealthAudit.Core.exe`:
 
 ```
 WinHealthAudit.Core.exe
@@ -326,10 +337,15 @@ MIT — see [LICENSE](LICENSE).
 обратно фильтром *скрытые*.
 
 **Вкладка «История»** помнит прошлые запуски: спарклайн здоровья, средняя /
-лучшая / худшая оценка и таблица с дельтами — клик по строке открывает тот
+лучшая / худшая оценка и таблица с дельтами — над таблицей **тренды**:
+мини-спарклайны важных чисел (ошибки WHEA в минуту, свободное место на `C:`,
+время загрузки) с текущим значением и дельтой. Клик по строке открывает тот
 запуск заново (только чтение), баннер над списком показывает, что вы
-смотрите прошлое. По завершении проверки в трее всплывает пузырь с оценкой
-(отключается в настройках).
+смотрите прошлое. Скрытые находки живут в настройках в отдельной секции с
+восстановлением в один клик. По завершении проверки в трее всплывает пузырь
+с оценкой (отключается в настройках), а если здоровье упало — это
+предупреждение с указанием изменения. Сегмент **автоповтора** в настройках
+(выкл / 1 ч / 4 ч / 12 ч) перезапускает проверку сам, пока окно открыто.
 
 Горячие клавиши: `R` — запуск, `/` — фильтр, `1` `2` `3` `4` — вкладки
 Находки / Проверки / История / Журнал, `Esc` — сброс.
@@ -347,6 +363,8 @@ MIT — see [LICENSE](LICENSE).
 | Диспетчер устройств | коды проблем с описанием простым языком |
 | Процессы, службы, автозагрузка | топ по ЦП и памяти, остановленные автоматические службы, ключи Run |
 | Состояние системы | ожидающая перезагрузка, схема питания, Защитник, активация |
+| Игровой профиль | частота обновления дисплея, Игровой режим, захват/GameDVR, аппаратное ускорение GPU, схема питания |
+| Скорость загрузки | сессии загрузки и их длительность (с правами: деградировавшие загрузки из Diagnostics-Performance), состояние Fast Startup |
 
 Серьёзность: `Info` < `Warning` < `Critical`. Незнакомые находки тоже
 показываются, но ниже в списке, чем проблемы с известной причиной.
@@ -385,6 +403,7 @@ MIT — see [LICENSE](LICENSE).
 | Период | насколько далеко смотрит аудит: 7 / 14 / 30 / 90 дней |
 | Язык | интерфейс EN / RU, запоминается |
 | Запускать аудит при открытии | стартует сразу при запуске окна |
+| Автоповтор | перезапускает проверку каждые 1 / 4 / 12 часов, пока окно открыто |
 | Запускать с Windows | добавляет/убирает запись `WinHealthAudit` в `HKCU\...\Run` |
 | Папка отчётов | куда сохраняются markdown-отчёты |
 
@@ -395,7 +414,7 @@ MIT — see [LICENSE](LICENSE).
 
 ## Командная строка
 
-Те же девять проверок без окна — `WinHealthAudit.Core.exe`:
+Те же одиннадцать проверок без окна — `WinHealthAudit.Core.exe`:
 
 ```
 WinHealthAudit.Core.exe

@@ -64,6 +64,7 @@ namespace WinHealthAudit.Checks
 
             if (events.Count == 0)
             {
+                result.Signal("wheaPerMin", 0);
                 result.Note(string.Format(CultureInfo.InvariantCulture,
                     "No WHEA events in the last {0} day(s).", context.Options.WindowDays));
                 return result;
@@ -88,6 +89,7 @@ namespace WinHealthAudit.Checks
             }
 
             var peak = PeakPerMinute(events);
+            result.Signal("wheaPerMin", peak.Count);
             var recent = 0;
             var edge = DateTime.Now - TimeSpan.FromSeconds(60);
             foreach (var item in events)

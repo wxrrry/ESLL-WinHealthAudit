@@ -20,7 +20,9 @@ namespace WinHealthAudit
                 new EventLogCheck(),
                 new DeviceManagerCheck(),
                 new ProcessesCheck(),
-                new SystemStateCheck()
+                new SystemStateCheck(),
+                new GamingCheck(),
+                new BootCheck()
             };
         }
     }

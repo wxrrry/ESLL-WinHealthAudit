@@ -49,6 +49,7 @@ function Merge-Settings($loaded) {
         out              = ''
         startWithWindows = $false
         notify           = $true
+        rerun            = 0
         hidden           = @()
     }
 
@@ -60,6 +61,7 @@ function Merge-Settings($loaded) {
 
     $s.days = [Math]::Min(365, [Math]::Max(1, [int]$s.days))
     if ($s.lang -ne 'ru') { $s.lang = 'en' }
+    if (@(0, 1, 4, 12) -notcontains [int]$s.rerun) { $s.rerun = 0 }
     return $s
 }
 
@@ -105,6 +107,11 @@ function Write-Settings($query) {
             'lang'             { $script:settings.lang = if ($value -eq 'ru') { 'ru' } else { 'en' } }
             'out'              { $script:settings.out = $value }
             'notify'           { $script:settings.notify = ($value -eq '1' -or $value -eq 'true') }
+            'rerun' {
+                $hours = [int]$value
+                if (@(0, 1, 4, 12) -notcontains $hours) { $hours = 0 }
+                $script:settings.rerun = $hours
+            }
             'startWithWindows' {
                 $script:settings.startWithWindows = ($value -eq '1' -or $value -eq 'true')
                 Apply-Startup $script:settings.startWithWindows
@@ -182,6 +189,7 @@ function Add-History($res) {
             info     = [int]$res.counts.info
             findings = @($res.findings).Count
             seconds  = $res.seconds
+            signals  = if ($res.signals) { $res.signals } else { $null }
         }
 
         $list = @($sum) + @($script:history)
@@ -243,13 +251,37 @@ function Append-ReportDelta($res, $prev) {
     } catch { }
 }
 
-function Show-Finish-Balloon {
+function Show-Finish-Balloon($prev) {
     try {
         if (-not $script:trayIcon -or -not $script:settings.notify) { return }
         if (-not $script:result) { return }
         $c = $script:result.counts
         $ru = ($script:settings.lang -eq 'ru')
-        $health = $script:result.health
+        $health = [int]$script:result.health
+
+        # A health drop or a new critical finding deserves a warning balloon,
+        # not the usual "finished" one.
+        $drop = $false
+        $delta = $null
+        if ($prev -and $null -ne $prev.health -and $null -ne $prev.counts) {
+            $delta = $health - [int]$prev.health
+            if ($delta -le -3 -or [int]$c.critical -gt [int]$prev.counts.critical) { $drop = $true }
+        }
+
+        if ($drop) {
+            $deltaText = if ($delta -ne $null -and $delta -ne 0) {
+                if ($delta -gt 0) { " (+$delta)" } else { " ($delta)" }
+            } else { '' }
+            $text = if ($ru) {
+                "Здоровье $health/100$deltaText — критично: $($c.critical), внимание: $($c.warning)"
+            } else {
+                "Health $health/100$deltaText — critical: $($c.critical), warning: $($c.warning)"
+            }
+            $title = if ($ru) { 'WinHealthAudit — здоровье снизилось' } else { 'WinHealthAudit — health dropped' }
+            $script:trayIcon.ShowBalloonTip(4000, $title, $text, [System.Windows.Forms.ToolTipIcon]::Warning)
+            return
+        }
+
         $text = if ($ru) {
             "Здоровье $health/100 — критично: $($c.critical), внимание: $($c.warning)"
         } else {
@@ -295,7 +327,7 @@ function Update-Run {
 
     Remove-Job -Job $script:job -Force -ErrorAction SilentlyContinue
     $script:job = $null
-    if ($script:phase -eq 'done') { Show-Finish-Balloon }
+    if ($script:phase -eq 'done') { Show-Finish-Balloon $script:prevResult }
 }
 
 function Start-Run([int]$days) {
@@ -332,6 +364,24 @@ function Test-Elevated {
     $identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# Periodic re-run: when the setting is on, a fresh audit starts as soon as the
+# last result is older than the chosen interval (the window must be open).
+$script:lastTick = Get-Date
+
+function Test-Rerun {
+    try {
+        $hours = [int]$script:settings.rerun
+        if ($hours -le 0) { return }
+        if ($script:phase -eq 'running') { return }
+        if (-not (Test-Path $lastPath)) { return }
+
+        $age = (Get-Date) - (Get-Item $lastPath).LastWriteTime
+        if ($age.TotalHours -lt $hours) { return }
+
+        Start-Run $script:days
+    } catch { }
 }
 
 function Get-State {
@@ -586,9 +636,14 @@ function Handle-Request($stream, [string]$method, [string]$target) {
 
         '/api/hide' {
             $key = ''
-            if ($query -match 'r=([^&]*)') {
+            if ($query -match '(^|&)all=1') {
+                $script:settings.hidden = @()
+                Save-Settings
+            } elseif ($query -match 'r=([^&]*)') {
                 $rule = [Uri]::UnescapeDataString($Matches[1])
-                if ($rule) { $key = 'rule:' + $rule }
+                if ($rule) {
+                    $key = 'rule:' + $rule
+                }
             } elseif ($query -match 'k=(.*)$') {
                 $key = [Uri]::UnescapeDataString($Matches[1])
             }
@@ -723,6 +778,13 @@ try {
             try { $pending = $listener.Pending() } catch { break }
             if ($pending) { break }
             if ($script:trayTimer) { [System.Windows.Forms.Application]::DoEvents() }
+
+            $now = Get-Date
+            if (($now - $script:lastTick).TotalSeconds -ge 2) {
+                $script:lastTick = $now
+                Test-Rerun
+            }
+
             Start-Sleep -Milliseconds 80
         }
         if ($script:quitting) { break }

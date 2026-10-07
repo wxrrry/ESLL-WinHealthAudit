@@ -166,6 +166,11 @@ namespace WinHealthAudit.Checks
 
                 var percent = total == 0 ? 100 : free * 100 / total;
 
+                if (drive.Name.StartsWith("C:", StringComparison.OrdinalIgnoreCase))
+                {
+                    result.Signal("cFree", total == 0 ? 100.0 : Math.Round(free * 100.0 / total, 1));
+                }
+
                 if (percent < 10)
                 {
                     result.Fail(string.Format(CultureInfo.InvariantCulture,
