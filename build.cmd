@@ -89,6 +89,7 @@ echo [4/4] WinHealthAudit-Setup.exe (installer)...
     /r:System.Windows.Forms.dll ^
     /r:Microsoft.CSharp.dll ^
     /res:"%ROOT%gui\logo.ico",logo.ico ^
+    /res:"%ROOT%gui\logo.png",logo.png ^
     /res:"%ROOT%bin\WinHealthAudit.exe",WinHealthAudit.exe ^
     /res:"%ROOT%bin\WinHealthAudit.Core.exe",WinHealthAudit.Core.exe ^
     "%ROOT%src\Installer\Program.cs"
