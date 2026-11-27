@@ -1609,7 +1609,7 @@
       if (params.get("splash") === "1") return;   // screenshot hook: keep the splash
       document.getElementById("splash").classList.add("gone");
       if (params.get("tutorial") === "1") showIntro(true);
-      else if (localStorage.getItem("wha_intro") !== "v1") showIntro(false);
+      else if (params.get("nointro") !== "1" && localStorage.getItem("wha_intro") !== "v1") showIntro(false);
       else maybeAutoRun();
     }, Math.max(0, 700 - (Date.now() - firstStateAt)));
   }
