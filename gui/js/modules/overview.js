@@ -155,6 +155,14 @@
             <div class="esll-meta">${t('Uptime', 'Аптайм')}: ${ov.uptimeHours} ${t('h', 'ч')}</div>
             <div class="esll-meta">${t('BIOS', 'BIOS')}: ${esc(ov.bios)}</div>
           </div>
+
+          <div class="esll-card" id="ov-trends-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <h4 style="margin:0">${t('Trends', 'Тренды')}</h4>
+              <span class="badge" style="cursor:pointer" onclick="WHA.switchModule('audit')">${t('History', 'История')}</span>
+            </div>
+            <div id="ov-trends-body" class="esll-meta">${t('Loading...', 'Загрузка...')}</div>
+          </div>
         </div>
       </div>
     `;
@@ -256,6 +264,65 @@
       el.onclick = () => openCompModal(el.getAttribute('data-comp'));
     });
 
+    function drawTrends() {
+      const tb = root.querySelector('#ov-trends-body');
+      if (!tb) return;
+      fetch('/api/state', { cache: 'no-store' }).then(r => r.json()).then(st => {
+        const hist = (st && st.history) ? [].concat(st.history).reverse() : [];
+        const metrics = [
+          { label: t('Health', 'Здоровье'), unit: '/100', get: r => r.health },
+          { label: t('C: free', 'C: свободно'), unit: '%', get: r => r.signals && r.signals.cFree },
+          { label: 'WHEA/min', unit: '', get: r => r.signals && r.signals.wheaPerMin },
+          { label: t('Boot', 'Загрузка'), unit: 's', get: r => r.signals && r.signals.bootSec }
+        ];
+
+        const rowsHtml = [];
+        metrics.forEach(m => {
+          const pts = [];
+          hist.forEach((r, idx) => {
+            const v = m.get(r);
+            if (v !== null && v !== undefined) pts.push([idx, Number(v)]);
+          });
+          if (pts.length === 0) return;
+          const last = Math.round(pts[pts.length - 1][1] * 10) / 10;
+          let spark = '';
+          let deltaTxt = '';
+          if (pts.length >= 2) {
+            const vals = pts.map(p => p[1]);
+            const min = Math.min.apply(null, vals);
+            const max = Math.max.apply(null, vals);
+            const span = (max - min) || 1;
+            const W = 72, H = 18, P = 2;
+            const coords = pts.map(p => {
+              const x = hist.length > 1 ? (p[0] / (hist.length - 1)) * W : W / 2;
+              const y = P + (1 - (p[1] - min) / span) * (H - 2 * P);
+              return x.toFixed(1) + ',' + y.toFixed(1);
+            });
+            spark = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.3"><polyline points="${coords.join(' ')}"/></svg>`;
+            const d = Math.round((last - vals[0]) * 10) / 10;
+            deltaTxt = d > 0 ? `+${d}` : (d < 0 ? `${d}` : '0');
+          }
+          rowsHtml.push(`
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px">
+              <span style="color:var(--dim);min-width:68px">${esc(m.label)}</span>
+              ${spark}
+              <span class="mono" style="color:var(--fg)">${last}${m.unit} ${deltaTxt ? `<span style="color:var(--faint)">(${deltaTxt})</span>` : ''}</span>
+            </div>`);
+        });
+
+        if (!rowsHtml.length) {
+          const cFreeNow = cDrive ? Math.max(0, 100 - cDrive.usedPct) : '—';
+          tb.innerHTML = `
+            <div style="display:flex;justify-content:space-between;padding:4px 0"><span>${t('C: free', 'C: свободно')}</span><b class="mono">${cFreeNow}%</b></div>
+            <div class="esll-meta" style="margin-top:4px">${t('Run 2+ audits to see WHEA, boot & disk trends.', 'Запустите 2+ аудита для графиков WHEA, загрузки и диска.')}</div>
+          `;
+        } else {
+          tb.innerHTML = rowsHtml.join('');
+        }
+      }).catch(() => {});
+    }
+
+    drawTrends();
     drawLiveBars(tel);
     if (liveTimer) clearInterval(liveTimer);
     liveTimer = setInterval(async () => {

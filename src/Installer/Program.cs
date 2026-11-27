@@ -210,7 +210,7 @@ namespace WinHealthAudit.Installer
 
         public InstallerForm()
         {
-            Text = "WinHealthAudit \\\\ ESLL — Setup v2.0.0";
+            Text = "WinHealthAudit \\\\ ESLL — Setup v2.1.0";
             ClientSize = new Size(600, 430);
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
@@ -293,7 +293,7 @@ namespace WinHealthAudit.Installer
 
             var sub = new Label
             {
-                Text = "VERSION 2.0.0  ·  WINDOWS HEALTH & CONTROL SUITE",
+                Text = "VERSION 2.1.0  ·  WINDOWS HEALTH & CONTROL SUITE",
                 Font = new Font("Segoe UI", 8f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(125, 125, 125),
                 BackColor = Color.Transparent,

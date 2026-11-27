@@ -456,7 +456,7 @@
           <div class="panel" id="settings-panel">
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--hair);padding-bottom:12px;margin-bottom:16px">
               <h3 data-i18n="set.title" style="border:0;margin:0;padding:0">Settings</h3>
-              <span class="badge">v2.0.0 · ESLL</span>
+              <span class="badge">v2.1.0 · ESLL</span>
             </div>
             <div class="grid-2" style="gap:20px">
               <div>
@@ -1936,8 +1936,8 @@
     if (!e.target.closest(".cmd-search")) cmdDrop.classList.remove("open");
   });
 
-  // Switch to Overview as default start screen
-  WHA.switchModule("overview");
+  // Switch to Overview as default start screen (or ?mod=...)
+  WHA.switchModule(params.get("mod") || "overview");
 
   // Click Run audit switches to Audit tab if user is elsewhere
   document.getElementById("run").addEventListener("click", () => {

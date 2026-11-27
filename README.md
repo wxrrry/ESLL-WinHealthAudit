@@ -4,21 +4,19 @@
 
 # WinHealthAudit
 
-**WINHEALTHAUDIT \ ESLL**
+**WINHEALTHAUDIT \\ ESLL**
 
-A read-only Windows health report — one executable, one markdown file.
+A standalone Windows health audit & PC control center — monochrome editorial UI, EN/RU interface, one installer.
 
 ![platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?style=flat-square&logo=windows&logoColor=white)
-![runtime](https://img.shields.io/badge/runtime-.NET%20Framework%204-512BD4?style=flat-square)
+![runtime](https://img.shields.io/badge/runtime-.NET%20Framework%204.8%20%2B%20WebView2-512BD4?style=flat-square)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white)
-![version](https://img.shields.io/badge/version-2.0.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-2.1.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 [![build](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml/badge.svg)](https://github.com/wxrrry/ESLL-WinHealthAudit/actions/workflows/build.yml)
 ![release](https://img.shields.io/github/v/release/wxrrry/ESLL-WinHealthAudit?style=flat-square&logo=github)
-![last commit](https://img.shields.io/github/last-commit/wxrrry/ESLL-WinHealthAudit?style=flat-square)
-[![issues](https://img.shields.io/github/issues/wxrrry/ESLL-WinHealthAudit?style=flat-square)](https://github.com/wxrrry/ESLL-WinHealthAudit/issues)
 
-**No installer. No service. No driver. No telemetry. Nothing leaves your machine.**
+**No account. No subscription. No telemetry. Standalone desktop window.**
 
 </div>
 
@@ -26,498 +24,92 @@ A read-only Windows health report — one executable, one markdown file.
 
 ## Contents
 
-- [Features](#features)
+- [What's inside](#whats-inside)
 - [Screenshots](#screenshots)
-- [What it checks](#what-it-checks)
-- [Quick start](#quick-start)
-- [Settings](#settings)
-- [Command line](#command-line)
-- [Build from source](#build-from-source)
-- [Architecture](#architecture)
-- [Troubleshooting](#troubleshooting)
-- [Notes](#notes)
-- [Contributing](#contributing)
-- [License](#license)
+- [Health Audit & Scoring](#health-audit--scoring)
+- [Modules](#modules)
+- [Installation & Build](#installation--build)
 - [Русская версия](#русская-версия)
 
-## Features
+## What's inside
 
-- **One file.** `WinHealthAudit.exe` contains the window, the interface and the
-  audit engine. Double-click and it unpacks itself into
-  `%LOCALAPPDATA%\WinHealthAudit`.
-- **Read-only.** It walks event logs, WMI classes and performance counters and
-  writes findings into a markdown report. No service is stopped, no setting is
-  changed, no log is cleared, no registry key is written (except an optional
-  *Start with Windows* entry you switch on yourself).
-- **Eleven checks, one severity scale.** `Info < Warning < Critical`, findings
-  sorted so the worst ones sit on top, each with its source and evidence.
-- **Click a finding to open it.** Three lines appear: *what was checked*,
-  *where the finding came from* (log, event id, WMI class) and *what to do*
-  about it — advice is shown in your interface language. A filter box above
-  the list narrows it as you type; the rows are reachable with the keyboard.
-- **Health score 0–100** in the header: every critical finding costs 8
-  points, every warning 2. The same number goes into the JSON output and at
-  the top of the markdown report, so it can be tracked over time.
-- **Since the last run** — a delta line over the findings list (`N new ·
-  M resolved`) and a `NEW` badge on rows that were not there last time;
-  counts and percentages do not break the comparison. The markdown report
-  gains a *Since the previous run* section with the same diff.
-- **History tab** — every audit is remembered (summaries for 50 runs,
-  full snapshots for the last 10): a health sparkline over time, average /
-  best / worst, and a table with per-run counts and a `Δ` column. Above the
-  table sit **trend rows** — tiny sparklines for the numbers that matter
-  (WHEA errors per minute, free space on `C:`, boot time), each with its
-  current value and a delta since the first run in view. Click any
-  row to reopen that run read-only — the banner shows you are looking at the
-  past, and *Back to current* returns to the live state.
-- **Hide a whole rule**, not just one row — the expanded finding offers
-  *hide this finding* and *hide all of this kind*; hidden entries live in
-  `settings.json`, are listed under a *hidden findings* section in Settings
-  with one-click restore, and come back with the *hidden* chip.
-- **Auto-repeat** — a Settings segment (off / 1 h / 4 h / 12 h) re-runs the
-  audit on its own while the window stays open, so the history keeps
-  collecting fresh samples in the background.
-- **Tray balloon when a run finishes** with the health score and counts —
-  switchable in Settings. When health drops, the balloon turns into a
-  warning that names the change instead.
-- **Hotkeys.** `R` re-runs the audit, `/` jumps into the filter, `1` `2`
-  `3` `4` switch *Findings* / *Checks* / *History* / *Log*, `Esc` clears
-  the filter, leaves the history view or folds everything back.
-- **Black and white, keyboard-friendly window** in an Edge `--app` view —
-  *Findings*, *Checks*, *History*, *Log*, report buttons, period and
-  language pickers. The logo lives in the taskbar and in the tray (open, run
-  an audit, quit). No Edge? The window opens in your default browser
-  instead.
-- **EN / RU interface.** The audit output stays in English (it is what the
-  system logs say), the interface switches in Settings.
-- **Guided tour on first run** and a splash screen; both are replayable from
-  the menu.
-- **Optional administrator mode.** Everything works as a normal user; run
-  elevated for SMART disk attributes and protected logs. The header pill shows
-  which mode you are in, and an elevated relaunch takes over the local port
-  from the plain one.
-- **A real command-line engine** underneath: `WinHealthAudit.Core.exe` prints
-  the same report to a file or one JSON document to stdout — exit code is the
-  number of critical findings.
+- **Standalone Desktop App (`WinHealthAudit.exe`)** — runs in its own native Windows `WebView2` window with a dark titlebar, tray icon, and orbital splash screen (independent of browser tabs).
+- **Installer (`WinHealthAudit-Setup.exe`)** — monochrome ESLL installer that bundles both `WinHealthAudit.exe` and `WinHealthAudit.Core.exe`, auto-creates the `WinHealthAudit` folder, adds Desktop & Start Menu shortcuts, and registers the app in Windows Search.
+- **11-module Control Center** — combines the original read-only 11-check Windows Health Audit engine with live hardware telemetry, driver management, program uninstaller & updater, storage analyzer, optimizer & debloat, privacy & security, benchmarks, device tester, and scheduled automation.
+- **EN / RU Interface & Audio Feedback** — instant language switch, `Ctrl+K` command search, and subtle toggleable UI sounds.
 
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/main.png" alt="Findings tab with severity filters" width="760">
+  <img src="docs/screenshots/overview.png" alt="Overview Bento Dashboard with live telemetry and trends" width="800">
+</p>
+<p align="center">
+  <em>Overview — hardware Bento tiles with monochrome SVG art, live telemetry, system health ring, and audit trends (Health, C: free, WHEA/min, Boot time).</em>
 </p>
 
 <p align="center">
-  <em>Findings — health score, what changed since the last run, click a row to
-  expand its source, what was checked and what to do.</em>
+  <img src="docs/screenshots/main.png" alt="Audit tab with scoring criteria and findings" width="800">
 </p>
-
 <p align="center">
-  <img src="docs/screenshots/history.png" alt="History tab with the health sparkline and the run table" width="760">
+  <em>Audit — 11 read-only checks, health score (0–100) with status grade, scoring criteria, severity filters, and markdown/JSON reports.</em>
 </p>
 
-<p align="center">
-  <em>History — health over time, per-run table, click a row to reopen it.</em>
-</p>
-
-<table align="center">
+<table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/settings.png" alt="Settings tab"></td>
-    <td width="50%"><img src="docs/screenshots/tutorial.png" alt="Guided tour"></td>
+    <td width="50%"><img src="docs/screenshots/programs.png" alt="Programs Hub" width="100%"><br><sub><b>Programs</b> — uninstaller with extracted app icons, detail cards, leftover quarantine, winget updater &amp; App Hangar</sub></td>
+    <td width="50%"><img src="docs/screenshots/automation.png" alt="Automation and Backups" width="100%"><br><sub><b>Automation</b> — scheduled maintenance tasks, Windows restore points, driver backups &amp; quarantine</sub></td>
   </tr>
   <tr>
-    <td align="center"><em>Settings — period, language, start options, report folder.</em></td>
-    <td align="center"><em>Guided tour on the first run.</em></td>
+    <td width="50%"><img src="docs/screenshots/settings.png" alt="Settings Modal" width="100%"><br><sub><b>Settings</b> — language (EN/RU), startup, auto-repeat, UI sounds, reports folder &amp; hidden rules</sub></td>
+    <td width="50%"><img src="docs/screenshots/history.png" alt="History Sparkline" width="100%"><br><sub><b>History</b> — health score over time, per-run snapshots &amp; trend sparklines</sub></td>
   </tr>
 </table>
 
-## What it checks
+## Health Audit & Scoring
 
-| Check | What you get |
-| --- | --- |
-| System info | OS build, install date, uptime, memory size, elevation state |
-| Hardware | CPU, memory speed vs rated speed, firmware date, GPUs, driver ages, VRAM |
-| Disks and page file | disk health, free space, page files (including stale ones), queue length |
-| Performance counters | CPU / DPC / interrupt load, free memory, pool sizes, process queue |
-| WHEA hardware errors | PCIe correctable errors decoded with device, rate and time of the worst minute |
-| Event logs | error events grouped by provider and id, with counts and known-issue rules |
-| Device manager | problem codes with a plain-language description |
-| Processes, services and startup | top CPU and memory, stopped automatic services, Run keys |
-| System state | pending reboot, power scheme, Defender, activation |
-| Gaming profile | display refresh rate, Game Mode, capture/GameDVR, hardware-accelerated GPU scheduling, power plan |
-| Boot performance | boot sessions and duration (elevated: degraded boots from Diagnostics-Performance), Fast Startup state |
+The core engine (`WinHealthAudit.Core.exe`) runs 11 read-only checks (`SystemInfo`, `Hardware`, `SystemState`, `EventLog`, `Disk`, `DeviceManager`, `Performance`, `Boot`, `Processes`, `WheaErrors`, `Gaming`) and computes a **Health Score (0–100)**:
 
-Severity is `Info` < `Warning` < `Critical`. Findings you have not seen before
-are still reported, just at a lower priority than the ones with a known cause.
+- **Formula**: `100 − (8 × Critical) − (2 × Warning)` (`Info` findings carry 0 penalty)
+- **Status Scale**:
+  - `90–100` — **Excellent**
+  - `75–89` — **Good**
+  - `50–74` — **Fair**
+  - `0–49` — **Critical**
 
-## Quick start
+## Modules
 
-> [!IMPORTANT]
-> The executable is unsigned. On the first run Windows shows **"Windows
-> protected your PC"** (SmartScreen) — press **More info → Run anyway**. This
-> is the only scary screen you will see.
+| Module | Capabilities |
+| :--- | :--- |
+| **Overview** | PC model, OS, uptime, drivers/programs/free space KPIs, live telemetry bars, clickable hardware Bento cards (GPU, CPU, RAM, Storage, Displays, Network), System Health ring & Audit Trends (`Health`, `C: free`, `WHEA/min`, `Boot`). |
+| **Audit** | 11 read-only health checks, findings with `NEW` delta badges, expandable 3-line details, rule hiding, History sparkline, live Log, Markdown & JSON report export. |
+| **Monitor** | Live CPU, RAM, GPU (load/temp/VRAM), SMART disk health, Wi-Fi/Ethernet, DNS latency test & presets, active processes with End Process / Open Location. |
+| **Drivers** | Full signed driver inventory, problem devices, Windows Update driver scan, `pnputil` backup export, System Restore Point creation. |
+| **Programs** | Uninstaller with real app icons, detail card (install path, open folder, uninstall command), leftover scanner + Quarantine/Restore, `winget` Updater, and App Hangar catalog & kits. |
+| **Storage** | Drive usage overview, folder space breakdown bar, largest files, SHA-256 duplicate finder, safe Recycle Bin deletion. |
+| **Optimizer** | Temp & shader cache cleanup, Startup apps manager, Services manager, Power plans, Game Mode / HAGS, Debloat tweaks, SFC / DISM / Network / WU repairs. |
+| **Privacy** | Security score (Defender, Firewall, UAC, Secure Boot, TPM), Windows tracking toggles, open listening ports, Camera/Mic/Location permission history, persistence audit. |
+| **Benchmark** | CPU single/multi-core, GPU WebGL shader, memory bandwidth, disk sequential read/write benchmarks & saved history. |
+| **Tester** | Keyboard actuation visualizer, dead pixel screen test, L/R/Stereo speaker test, microphone level meter, camera preview, mouse CPS test & gamepad visualizer. |
+| **Automation** | Scheduled Windows Task Scheduler maintenance presets, System Restore Points, driver backups & quarantine overview. |
 
-1. Get `WinHealthAudit.exe`
-   from the [Releases](https://github.com/wxrrry/ESLL-WinHealthAudit/releases)
-   page — or build it yourself in one second: [`build.cmd`](build.cmd).
-2. Double-click it. The first run unpacks the interface and the engine into
-   `%LOCALAPPDATA%\WinHealthAudit` and opens the window.
-3. Pick a period, press **Run audit**, read the findings, **Save report**.
+## Installation & Build
 
-Already running? Launching the exe again just opens a second window on the
-same local server — nothing doubles.
-
-<details>
-<summary>Administrator mode</summary>
-
-Right-click the exe → **Run as administrator** if you want SMART attributes
-and the full picture of protected logs. The pill in the header switches from
-"without administrator rights" to "administrator", and the elevated instance
-takes over the local port from the plain one automatically.
-
-</details>
-
-## Settings
-
-| Setting | What it does |
-| --- | --- |
-| Period | how far back the audit looks: 7 / 14 / 30 / 90 days |
-| Language | EN / RU interface, remembered between launches |
-| Run audit at launch | start a run as soon as the window opens |
-| Auto-repeat | re-run the audit every 1 / 4 / 12 hours while the window is open |
-| Start with Windows | adds/removes a `WinHealthAudit` entry under `HKCU\...\Run` |
-| Report folder | where markdown reports are written |
-
-Everything is stored in `%LOCALAPPDATA%\WinHealthAudit\settings.json`.
-Reports land in `%LOCALAPPDATA%\WinHealthAudit\reports\` as
-`WinHealthAudit-YYYYMMDD-HHMMSS.md` (UTF-8 with BOM — opens correctly in
-Notepad).
-
-## Command line
-
-The same eleven checks without the window — `WinHealthAudit.Core.exe`:
-
-```
-WinHealthAudit.Core.exe
-WinHealthAudit.Core.exe --days 30
-WinHealthAudit.Core.exe --out C:\temp --quiet
-WinHealthAudit.Core.exe --json --days 7   # one JSON document on stdout
-```
-
-| Option | Meaning |
-| --- | --- |
-| `-d`, `--days N` | look back N days in the event logs (default 14, max 365) |
-| `-o`, `--out DIR` | where to write the markdown report (default `.\reports`) |
-| `-q`, `--quiet` | print only the progress lines and the summary |
-| `--json` | the result as one JSON document on stdout (with the `health` score), progress on stderr — what the window reads |
-| `-h`, `--help` | usage |
-
-Exit codes: the number of critical findings (0 means nothing critical), `2`
-for bad arguments. That makes it usable from a scheduled task or a CI step
-without parsing the output.
-
-## Build from source
-
-`build.cmd` uses the C# compiler that ships inside Windows
-(`%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`). No .NET SDK,
-no NuGet, no Visual Studio:
-
-```
-build.cmd
-```
-
-produces two files in `bin\`:
-
-| File | Role |
-| --- | --- |
-| `WinHealthAudit.exe` | the app: window + interface + embedded engine |
-| `WinHealthAudit.Core.exe` | the console engine (`--days`, `--json`, exit codes) |
-
-The GitHub workflow [`.github/workflows/build.yml`](.github/workflows/build.yml)
-runs the same `build.cmd` on `windows-latest` and uploads `bin/*.exe` as an
-artifact on every push.
-
-`WinHealthAudit.csproj` is included for Visual Studio; it needs the .NET
-Framework 4.8 targeting pack and compiles the same `src\` tree (`src\Ui` is
-left out there so the project stays console-only).
-
-Working on the interface? `gui\start-window.bat` opens the window straight
-from the sources:
-
-```
-gui\start-window.bat              # server + window from gui\
-gui\app.ps1 -NoBrowser -Port 8777 # server only, for testing
-```
-
-## Architecture
-
-```mermaid
-flowchart LR
-    A["WinHealthAudit.exe<br/>(launcher)"] -->|"first run: extract"| B["%LOCALAPPDATA%<br/>WinHealthAudit\"]
-    B --> C["app.ps1<br/>local server 127.0.0.1:8777"]
-    B --> D["WinHealthAudit.Core.exe<br/>(engine)"]
-    C -->|"Start-Job --json"| D
-    C -->|"HTTP"| E["index.html<br/>Edge --app window"]
-    D --> F["report .md<br/>+ findings JSON"]
-    F --> E
-```
-
-- The launcher embeds `app.ps1`, `index.html`, `logo.png`, `logo.ico` and the
-  whole engine as .NET resources and unpacks them on first start.
-- `app.ps1` is a tiny `TcpListener` server bound to `127.0.0.1` only —
-  every fetch comes from localhost, nothing goes out.
-- The engine runs in a PowerShell job; JSON goes over stdout, progress over
-  stderr, so a broken line can never corrupt a result.
-
-## Troubleshooting
-
-> [!WARNING]
-> SmartScreen / antivirus warnings on an unsigned binary are expected. Read
-> the note in [Quick start](#quick-start); add an exclusion if your AV
-> quarantines it, or build from source and inspect the code yourself.
-
-| Symptom | Fix |
-| --- | --- |
-| Window does not open | your default browser opens instead — the app works there too; install/repair Edge if you want the app window |
-| Header says "without administrator rights" | right-click → Run as administrator (optional) |
-| Port 8777 is taken by another app | close that app, or end `WinHealthAudit` / `powershell` entries in Task Manager and relaunch |
-| Settings or results look wrong | close all windows, delete `%LOCALAPPDATA%\WinHealthAudit` and start fresh |
-| Reports folder grew | old `.md` files are never deleted automatically — delete what you do not need |
-
-## Notes
-
-- Performance counters are read through WMI (`Win32_PerfFormattedData_*`)
-  instead of `typeperf`, so the names work on any display language.
-- Event log queries are XPath filters limited to error and critical records
-  inside the time window, so a run takes a few seconds even when a log is
-  stuffed full of noise.
-- The report is UTF-8 with BOM, so it opens correctly in Notepad.
-- No install, no service, no driver, no telemetry, no network traffic.
-
-## Contributing
-
-Issues and pull requests are welcome. House rules that keep the project
-buildable on a stock Windows box:
-
-- C# stays compilable by the .NET Framework 4.x `csc.exe` — no C# 6+ syntax
-  (`?.`, `$""`, `out var`).
-- The window is plain HTML/CSS/JS in one file, no bundlers, no frameworks.
-- PowerShell is stock 5.1 — no modules, no `ps2exe`.
-- Keep it read-only: the tool observes, it never repairs.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+1. Download **`WinHealthAudit-Setup.exe`** from [Releases](https://github.com/wxrrry/ESLL-WinHealthAudit/releases/latest) and run it (supports `/S /D=C:\Path` for silent install).
+2. Or build from source on Windows 10/11 (only built-in `.NET Framework 4.x` `csc.exe` is required):
+   ```cmd
+   build.cmd
+   ```
+   Outputs to `bin\`: `WinHealthAudit-Setup.exe`, `WinHealthAudit.exe`, and `WinHealthAudit.Core.exe`.
 
 ---
 
-<details>
-<summary>Русская версия</summary>
+## Русская версия
 
-# WinHealthAudit
+**WinHealthAudit \\ ESLL** — автономный центр аудита и управления Windows 10/11 в монохромном редакторском стиле с русским и английским интерфейсом.
 
-**Отчёт о здоровье Windows — только чтение: один исполняемый файл, один markdown-файл.**
-
-Программа обходит журналы событий, классы WMI и счётчики производительности —
-те данные, для которых обычно нужны десять разных консолей, — группирует
-находки и печатает отчёт, отсортированный по серьёзности. Ничего не меняется
-в системе: ни служба не останавливается, ни настройка не пишется, ни журнал не
-очищается.
-
-Находку можно раскрыть кликом — появятся три строки: *что проверялось*,
-*откуда взято* (журнал, код события, класс WMI) и *что делать* (совет на
-вашем языке). Над списком есть фильтр по тексту, строки доступны с клавиатуры,
-логотип — в панели задач и в трее (открыть, запустить проверку, выход).
-
-В шапке — **оценка здоровья 0–100** (каждая критическая находка снимает 8
-очков, каждая «внимание» — 2); она же попадает в JSON и в начало отчёта.
-Над списком — строка дельты с прошлого запуска («новых · исчезло») и бейдж
-**новая** у строк, которых не было вчера; в markdown-отчёте появляется
-секция *Since the previous run*. Надоевшую находку можно скрыть кнопкой в
-раскрытой строке — одной или **сразу всех таких же** (по правилу) — и вернуть
-обратно фильтром *скрытые*.
-
-**Вкладка «История»** помнит прошлые запуски: спарклайн здоровья, средняя /
-лучшая / худшая оценка и таблица с дельтами — над таблицей **тренды**:
-мини-спарклайны важных чисел (ошибки WHEA в минуту, свободное место на `C:`,
-время загрузки) с текущим значением и дельтой. Клик по строке открывает тот
-запуск заново (только чтение), баннер над списком показывает, что вы
-смотрите прошлое. Скрытые находки живут в настройках в отдельной секции с
-восстановлением в один клик. По завершении проверки в трее всплывает пузырь
-с оценкой (отключается в настройках), а если здоровье упало — это
-предупреждение с указанием изменения. Сегмент **автоповтора** в настройках
-(выкл / 1 ч / 4 ч / 12 ч) перезапускает проверку сам, пока окно открыто.
-
-Горячие клавиши: `R` — запуск, `/` — фильтр, `1` `2` `3` `4` — вкладки
-Находки / Проверки / История / Журнал, `Esc` — сброс.
-
-## Что проверяется
-
-| Проверка | Что вы получите |
-| --- | --- |
-| Система | сбор ОС, дата установки, аптайм, объём памяти, статус прав |
-| Оборудование | ЦП, реальная частота памяти против паспортной, дата прошивки, видеокарты, возраст драйверов, объём VRAM |
-| Диски и файл подкачки | здоровье дисков, свободное место, файлы подкачки (включая «старые»), длина очереди |
-| Счётчики производительности | загрузка ЦП / DPC / прерываний, свободная память, пулы, очередь процессов |
-| Аппаратные ошибки WHEA | исправляемые ошибки PCIe с устройством, частотой и временем худшей минуты |
-| Журналы событий | ошибки по поставщикам и кодам, со счётчиками и правилами известных проблем |
-| Диспетчер устройств | коды проблем с описанием простым языком |
-| Процессы, службы, автозагрузка | топ по ЦП и памяти, остановленные автоматические службы, ключи Run |
-| Состояние системы | ожидающая перезагрузка, схема питания, Защитник, активация |
-| Игровой профиль | частота обновления дисплея, Игровой режим, захват/GameDVR, аппаратное ускорение GPU, схема питания |
-| Скорость загрузки | сессии загрузки и их длительность (с правами: деградировавшие загрузки из Diagnostics-Performance), состояние Fast Startup |
-
-Серьёзность: `Info` < `Warning` < `Critical`. Незнакомые находки тоже
-показываются, но ниже в списке, чем проблемы с известной причиной.
-
-## Быстрый старт
-
-> **Важно:** файл не подписан. При первом запуске Windows покажет «Windows защитила ваш
-> ПК» (SmartScreen) — нажмите **«Подробнее → Всё равно запустить»**. Это
-> единственный «пугающий» экран.
-
-1. Скачайте `WinHealthAudit.exe` со страницы
-   [Releases](https://github.com/wxrrry/ESLL-WinHealthAudit/releases) — или
-   соберите сами одним файлом: [`build.cmd`](build.cmd).
-2. Запустите двойным щелчком. При первом запуске интерфейс и движок
-   распакуются в `%LOCALAPPDATA%\WinHealthAudit` и откроется окно.
-3. Выберите период, нажмите **«Запустить аудит»**, прочитайте находки,
-   **«Сохранить отчёт»**.
-
-Программа уже запущена? Повторный запуск просто открывает второе окно к тому
-же локальному серверу — ничего не задвоится.
-
-<details>
-<summary>Режим администратора</summary>
-
-Правый клик по файлу → **«Запуск от имени администратора»**, если нужны
-атрибуты SMART и полная картина по защищённым журналам. Плашка в шапке
-переключается с «без прав администратора» на «администратор», а админ-экземпляр
-автоматически перехватывает локальный порт у обычного.
-
-</details>
-
-## Настройки
-
-| Настройка | Что делает |
-| --- | --- |
-| Период | насколько далеко смотрит аудит: 7 / 14 / 30 / 90 дней |
-| Язык | интерфейс EN / RU, запоминается |
-| Запускать аудит при открытии | стартует сразу при запуске окна |
-| Автоповтор | перезапускает проверку каждые 1 / 4 / 12 часов, пока окно открыто |
-| Запускать с Windows | добавляет/убирает запись `WinHealthAudit` в `HKCU\...\Run` |
-| Папка отчётов | куда сохраняются markdown-отчёты |
-
-Всё хранится в `%LOCALAPPDATA%\WinHealthAudit\settings.json`, отчёты — в
-`%LOCALAPPDATA%\WinHealthAudit\reports\` c именем
-`WinHealthAudit-ГГГГММДД-ЧЧММСС.md` (UTF-8 с BOM — корректно открывается в
-Блокноте).
-
-## Командная строка
-
-Те же одиннадцать проверок без окна — `WinHealthAudit.Core.exe`:
-
-```
-WinHealthAudit.Core.exe
-WinHealthAudit.Core.exe --days 30
-WinHealthAudit.Core.exe --out C:\temp --quiet
-WinHealthAudit.Core.exe --json --days 7   # один JSON-документ в stdout
-```
-
-| Опция | Значение |
-| --- | --- |
-| `-d`, `--days N` | за сколько дней смотреть журналы (по умолчанию 14, максимум 365) |
-| `-o`, `--out DIR` | куда писать markdown-отчёт (по умолчанию `.\reports`) |
-| `-q`, `--quiet` | только строки прогресса и итог |
-| `--json` | результат одним JSON-документом в stdout, прогресс в stderr — так читает окно |
-| `-h`, `--help` | справка |
-
-Коды выхода: число критических находок (0 — критического нет), `2` при
-неправильных аргументах. Удобно для планировщика или CI без парсинга вывода.
-
-## Сборка
-
-`build.cmd` использует компилятор C#, входящий в Windows
-(`%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\csc.exe`). Без .NET SDK,
-без NuGet, без Visual Studio:
-
-```
-build.cmd
-```
-
-на выходе два файла в `bin\`:
-
-| Файл | Роль |
-| --- | --- |
-| `WinHealthAudit.exe` | приложение: окно + интерфейс + вшитый движок |
-| `WinHealthAudit.Core.exe` | консольный движок (`--days`, `--json`, коды выхода) |
-
-CI-workflow [`.github/workflows/build.yml`](.github/workflows/build.yml)
-запускает тот же `build.cmd` на `windows-latest` и прикладывает `bin/*.exe`
-артефактом на каждый push.
-
-`WinHealthAudit.csproj` приложен для Visual Studio (нужен .NET Framework 4.8
-targeting pack); `src\Ui` в него не входит, проект остаётся консольным.
-
-Правите интерфейс? `gui\start-window.bat` открывает окно прямо из исходников:
-
-```
-gui\start-window.bat              # сервер + окно из gui\
-gui\app.ps1 -NoBrowser -Port 8777 # только сервер, для тестов
-```
-
-## Архитектура
-
-```mermaid
-flowchart LR
-    A["WinHealthAudit.exe<br/>(лаунчер)"] -->|"первый запуск: распаковка"| B["%LOCALAPPDATA%<br/>WinHealthAudit\"]
-    B --> C["app.ps1<br/>локальный сервер 127.0.0.1:8777"]
-    B --> D["WinHealthAudit.Core.exe<br/>(движок)"]
-    C -->|"Start-Job --json"| D
-    C -->|"HTTP"| E["index.html<br/>окно Edge --app"]
-    D --> F["отчёт .md<br/>+ JSON находок"]
-    F --> E
-```
-
-Лаунчер хранит `app.ps1`, `index.html`, `logo.png` и весь движок как
-ресурса .NET и распаковывает их при первом старте. `app.ps1` — маленький
-`TcpListener`, привязанный только к `127.0.0.1`: все запросы с localhost,
-наружу ничего не уходит. Движок работает в job'е PowerShell: JSON — в stdout,
-прогресс — в stderr, поэтому битая строка не испортит результат.
-
-## Если что-то не так
-
-| Симптом | Решение |
-| --- | --- |
-| Окно не открылось | откроется системный браузер — там всё работает; восстановите Edge, если нужно именно окно приложения |
-| В шапке «без прав администратора» | правый клик → «Запуск от имени администратора» (по желанию) |
-| Порт 8777 занят чужим приложением | закройте его или завершите `WinHealthAudit` / `powershell` в диспетчере задач и запустите заново |
-| Настройки/результаты «съехали» | закройте окна, удалите `%LOCALAPPDATA%\WinHealthAudit` и начните заново |
-| Папка отчётов разрослась | старые `.md` не удаляются автоматически — удалите ненужные вручную |
-
-## Замечания
-
-- Счётчики производительности читаются через WMI
-  (`Win32_PerfFormattedData_*`), а не `typeperf` — имена работают на любой
-  язык системы.
-- Запросы к журналам — XPath-фильтры только по ошибкам и критическим записям
-  за окно поиска: аудит занимает секунды даже в «шумном» журнале.
-- Отчёт в UTF-8 с BOM — корректно открывается в Блокноте.
-- Без установки, без служб, без драйверов, без телеметрии, без сетевого
-  трафика.
-
-## Участие
-
-Issues и pull requests приветствуются. Правила, из-за которых проект
-собирается на «чистом» Windows:
-
-- C# должен компилироваться `csc.exe` из .NET Framework 4.x — синтаксис C# 6+
-  (`?.`, `$""`, `out var`) запрещён.
-- Окно — один файл чистого HTML/CSS/JS, без сборщиков и фреймворков.
-- PowerShell — стоковый 5.1: без модулей и `ps2exe`.
-- Только наблюдение: инструмент ничего не чинит.
-
-## Лицензия
-
-MIT — см. [LICENSE](LICENSE).
-
-</details>
+### Основные возможности
+- **Самостоятельное окно (`WinHealthAudit.exe`)** на базе встроенного `WebView2` (не зависит от вкладок браузера) и орбитальный экран загрузки.
+- **Единый установщик (`WinHealthAudit-Setup.exe`)** — устанавливает `WinHealthAudit.exe` и `WinHealthAudit.Core.exe`, сам создаёт подпапку `WinHealthAudit`, добавляет ярлыки и регистрирует приложение в поиске Windows.
+- **Главная (Overview)** — сводка по ПК, живые графики нагрузки, карточки компонентов с иллюстрациями и деталями по клику, а также блок **Тренды** (здоровье, заполнение диска `C:`, `WHEA/мин`, время загрузки).
+- **Аудит** — 11 read-only проверок, формула оценки `100 − (8 × Critical) − (2 × Warning)` со шкалой состояния (*Отлично / Хорошо / Удовлетв. / Критично*), история запусков и отчёты в Markdown/JSON.
+- **Все модули управления** — *Монитор*, *Драйверы*, *Программы* (с иконками, карточками путей, карантином остатков, `winget` и каталогом App Hangar), *Диски* (анализ места и дубликаты), *Оптимизация* (очистка, автозагрузка, службы, деблоат, SFC/DISM), *Приватность*, *Тест ПК* (CPU/GPU/RAM/Disk), *Тестер устройств* (клавиатура, экран, звук, микрофон, камера, мышь, геймпад) и *Задачи* (планировщик и точки восстановления).
