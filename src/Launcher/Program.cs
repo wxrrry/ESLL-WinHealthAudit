@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -7,24 +8,32 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 
 namespace WinHealthAudit.Window
 {
-    /// <summary>
-    /// One-file launcher: unpacks the window (app.ps1 + index.html + engine) to
-    /// %LOCALAPPDATA%\WinHealthAudit, starts the local server and opens an
-    /// Edge --app window. The auxiliary engine travels inside this exe as
-    /// WinHealthAudit.Core.exe.
-    /// </summary>
     internal static class Launcher
     {
         private const int Port = 8777;
+        private static string _webviewDir;
+        private static Process _serverProc;
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int MessageBox(IntPtr handle, string text, string caption, uint type);
 
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool SetDllDirectory(string lpPathName);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+        [STAThread]
         private static int Main()
         {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
             try
             {
                 Run();
@@ -32,7 +41,7 @@ namespace WinHealthAudit.Window
             }
             catch (Exception ex)
             {
-                MessageBox(IntPtr.Zero, ex.Message, "WinHealthAudit", 0x10 /* MB_ICONERROR */);
+                MessageBox(IntPtr.Zero, ex.Message, "WinHealthAudit", 0x10);
                 return 1;
             }
         }
@@ -42,12 +51,26 @@ namespace WinHealthAudit.Window
             var dir = AppDomain.CurrentDomain.BaseDirectory;
             var exePath = Assembly.GetEntryAssembly().Location;
 
-            var dataDir = Path.Combine(
+            var appRoot = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WinHealthAudit", "gui");
+                "WinHealthAudit");
+            var dataDir = Path.Combine(appRoot, "gui");
+            _webviewDir = Path.Combine(appRoot, "webview2");
             Directory.CreateDirectory(dataDir);
+            Directory.CreateDirectory(_webviewDir);
 
             ExtractGuiBundle(dataDir);
+            Extract(_webviewDir, "Microsoft.Web.WebView2.Core.dll", false);
+            Extract(_webviewDir, "Microsoft.Web.WebView2.WinForms.dll", false);
+            Extract(_webviewDir, "WebView2Loader.dll", false);
+            SetDllDirectory(_webviewDir);
+
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                var shortName = new AssemblyName(args.Name).Name + ".dll";
+                var candidate = Path.Combine(_webviewDir, shortName);
+                return File.Exists(candidate) ? Assembly.LoadFrom(candidate) : null;
+            };
 
             var script = Path.Combine(dataDir, "app.ps1");
             if (!File.Exists(script))
@@ -58,18 +81,113 @@ namespace WinHealthAudit.Window
                 Extract(dataDir, "logo.ico", false);
             }
 
-            var engine = ExtractEngine(Path.GetDirectoryName(dataDir)) ??
-                         FindEngine(dir);
+            var engine = ExtractEngine(appRoot) ?? FindEngine(dir);
 
-            // An elevated launch must always go through app.ps1: it takes the
-            // port over from a non-elevated instance that may be running.
             if (!PageUp() || IsElevated())
             {
                 StartServer(script, engine, exePath);
                 WaitForServer();
             }
 
-            OpenWindow();
+            OpenStandaloneWindow(appRoot);
+        }
+
+        private static void OpenStandaloneWindow(string appRoot)
+        {
+            var url = "http://127.0.0.1:" + Port + "/";
+            try
+            {
+                var form = new Form
+                {
+                    Text = "WinHealthAudit \\\\ ESLL",
+                    Width = 1380,
+                    Height = 860,
+                    MinimumSize = new Size(1024, 660),
+                    StartPosition = FormStartPosition.CenterScreen,
+                    BackColor = Color.Black,
+                    ForeColor = Color.White
+                };
+
+                try
+                {
+                    using (var s = Assembly.GetEntryAssembly().GetManifestResourceStream("logo.ico"))
+                    {
+                        if (s != null) form.Icon = new Icon(s);
+                    }
+                }
+                catch { }
+
+                form.HandleCreated += (s, e) =>
+                {
+                    try
+                    {
+                        int dark = 1;
+                        DwmSetWindowAttribute(form.Handle, 20, ref dark, sizeof(int));
+                    }
+                    catch { }
+                };
+
+                var webView = new WebView2
+                {
+                    Dock = DockStyle.Fill,
+                    DefaultBackgroundColor = Color.Black
+                };
+                form.Controls.Add(webView);
+
+                form.Load += async (s, e) =>
+                {
+                    try
+                    {
+                        var userData = Path.Combine(appRoot, "ebwebview");
+                        var env = await CoreWebView2Environment.CreateAsync(null, userData);
+                        await webView.EnsureCoreWebView2Async(env);
+                        webView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                        webView.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
+                        webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                        webView.CoreWebView2.Settings.IsZoomControlEnabled = false;
+                        webView.CoreWebView2.Navigate(url);
+                    }
+                    catch
+                    {
+                        form.Close();
+                        OpenBrowserFallback(url);
+                    }
+                };
+
+                form.FormClosed += (s, e) =>
+                {
+                    try
+                    {
+                        if (_serverProc != null && !_serverProc.HasExited)
+                            _serverProc.Kill();
+                    }
+                    catch { }
+                };
+
+                Application.Run(form);
+            }
+            catch
+            {
+                OpenBrowserFallback(url);
+            }
+        }
+
+        private static void OpenBrowserFallback(string url)
+        {
+            var edges = new[]
+            {
+                @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                @"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+            };
+            foreach (var edge in edges)
+            {
+                if (File.Exists(edge))
+                {
+                    Process.Start(edge, "--app=\"" + url + "\"");
+                    return;
+                }
+            }
+            Process.Start(url);
         }
 
         private static bool IsElevated()
@@ -83,18 +201,12 @@ namespace WinHealthAudit.Window
 
         private static string ExtractEngine(string installDir)
         {
-            // One-file layout: the engine travels inside this exe - the single
-            // source of truth, always in sync with the launcher build.
             var engine = Extract(installDir, "WinHealthAudit.Core.exe", false);
             if (engine != null) return engine;
-
-            // Fallback for builds without the embedded engine.
             var local = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WinHealthAudit.Core.exe");
             if (File.Exists(local)) return local;
-
             var inBin = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "bin", "WinHealthAudit.Core.exe");
             if (File.Exists(inBin)) return inBin;
-
             return null;
         }
 
@@ -102,14 +214,9 @@ namespace WinHealthAudit.Window
         {
             var nextToUs = Path.Combine(dir, "WinHealthAudit.Core.exe");
             if (File.Exists(nextToUs)) return nextToUs;
-
             var inBin = Path.Combine(dir, "bin", "WinHealthAudit.Core.exe");
             if (File.Exists(inBin)) return inBin;
-
-            throw new FileNotFoundException(
-                "WinHealthAudit.Core.exe was not found next to " +
-                Path.GetFileName(Assembly.GetEntryAssembly().Location) +
-                ". Put both files in the same folder.");
+            throw new FileNotFoundException("WinHealthAudit.Core.exe was not found.");
         }
 
         private static void ExtractGuiBundle(string dataDir)
@@ -117,18 +224,12 @@ namespace WinHealthAudit.Window
             using (var stream = Assembly.GetEntryAssembly().GetManifestResourceStream("gui.zip"))
             {
                 if (stream == null) return;
-
                 var zipPath = Path.Combine(Path.GetDirectoryName(dataDir), "gui.zip");
                 var buffer = new MemoryStream();
                 stream.CopyTo(buffer);
                 var bytes = buffer.ToArray();
-
                 var marker = Path.Combine(dataDir, "app.ps1");
-                if (File.Exists(zipPath) && File.Exists(marker) && Same(File.ReadAllBytes(zipPath), bytes))
-                {
-                    return;
-                }
-
+                if (File.Exists(zipPath) && File.Exists(marker) && Same(File.ReadAllBytes(zipPath), bytes)) return;
                 File.WriteAllBytes(zipPath, bytes);
                 using (var archive = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read))
                 {
@@ -147,28 +248,21 @@ namespace WinHealthAudit.Window
         private static string Extract(string dir, string name, bool required)
         {
             var target = Path.Combine(dir, name);
-
             using (var stream = Assembly.GetEntryAssembly().GetManifestResourceStream(name))
             {
                 if (stream == null)
                 {
-                    if (required)
-                    {
-                        throw new InvalidOperationException("missing embedded file: " + name);
-                    }
+                    if (required) throw new InvalidOperationException("missing embedded file: " + name);
                     return null;
                 }
-
                 var buffer = new MemoryStream();
                 stream.CopyTo(buffer);
                 var bytes = buffer.ToArray();
-
                 if (!File.Exists(target) || !Same(File.ReadAllBytes(target), bytes))
                 {
                     File.WriteAllBytes(target, bytes);
                 }
             }
-
             return target;
         }
 
@@ -194,8 +288,7 @@ namespace WinHealthAudit.Window
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
-
-            Process.Start(info);
+            _serverProc = Process.Start(info);
         }
 
         private static bool PageUp()
@@ -205,7 +298,6 @@ namespace WinHealthAudit.Window
                 var request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + Port + "/");
                 request.Timeout = 900;
                 request.Proxy = null;
-
                 using (var response = (HttpWebResponse)request.GetResponse())
                 using (var reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
                 {
@@ -215,10 +307,7 @@ namespace WinHealthAudit.Window
                     return head.IndexOf("WinHealthAudit", StringComparison.OrdinalIgnoreCase) >= 0;
                 }
             }
-            catch
-            {
-                return false;
-            }
+            catch { return false; }
         }
 
         private static void WaitForServer()
@@ -228,32 +317,7 @@ namespace WinHealthAudit.Window
                 if (PageUp()) return;
                 Thread.Sleep(250);
             }
-
-            throw new InvalidOperationException(
-                "The local server did not start. Port " + Port +
-                " may be busy - close the other window and try again.");
-        }
-
-        private static void OpenWindow()
-        {
-            var url = "http://127.0.0.1:" + Port + "/";
-
-            var edges = new[]
-            {
-                @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-                @"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
-            };
-
-            foreach (var edge in edges)
-            {
-                if (File.Exists(edge))
-                {
-                    Process.Start(edge, "--app=\"" + url + "\"");
-                    return;
-                }
-            }
-
-            Process.Start(url);
+            throw new InvalidOperationException("The local server did not start on port " + Port);
         }
     }
 }

@@ -790,6 +790,35 @@ function Handle-Request($stream, [string]$method, [string]$target, [string]$body
             }
         }
 
+        '/api/app-icon' {
+            $rawPath = ''
+            if ($query -match 'p=([^&]+)') { $rawPath = [Uri]::UnescapeDataString($Matches[1]) }
+            $cleanPath = ($rawPath -replace ',.*$', '').Trim().Trim('"')
+            if ($cleanPath -and (Test-Path -LiteralPath $cleanPath -PathType Leaf)) {
+                try {
+                    Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
+                    $iconDir = Join-Path $settingsDir 'icons'
+                    New-Item -ItemType Directory -Path $iconDir -Force | Out-Null
+                    $hash = [BitConverter]::ToString(([System.Security.Cryptography.MD5]::Create()).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($cleanPath))).Replace('-', '')
+                    $pngPath = Join-Path $iconDir ($hash + '.png')
+                    if (-not (Test-Path -LiteralPath $pngPath)) {
+                        $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($cleanPath)
+                        if ($ico) {
+                            $bmp = $ico.ToBitmap()
+                            $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
+                            $bmp.Dispose()
+                            $ico.Dispose()
+                        }
+                    }
+                    if (Test-Path -LiteralPath $pngPath) {
+                        Send-Response $stream '200 OK' 'image/png' ([System.IO.File]::ReadAllBytes($pngPath))
+                        return
+                    }
+                } catch { }
+            }
+            Send-Text $stream '404 Not Found' 'no icon'
+        }
+
         '/api/state' { Send-Json $stream (Get-State) }
 
         '/api/tray' {

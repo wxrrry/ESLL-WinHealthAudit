@@ -50,18 +50,25 @@ if errorlevel 1 (
 )
 
 rem --- window launcher: one exe with everything inside ----------------------------
-echo [3/4] WinHealthAudit.exe (the app)...
-"%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /warn:4 ^
+echo [3/4] WinHealthAudit.exe (standalone WebView2 app)...
+"%CSC%" /nologo /target:winexe /platform:x86 /optimize+ /warn:4 ^
     /main:WinHealthAudit.Window.Launcher ^
     /out:"%ROOT%bin\WinHealthAudit.exe" ^
     /win32icon:"%ROOT%gui\logo.ico" ^
     /r:System.dll ^
     /r:System.Core.dll ^
+    /r:System.Drawing.dll ^
+    /r:System.Windows.Forms.dll ^
     /r:System.IO.Compression.dll ^
     /r:System.IO.Compression.FileSystem.dll ^
+    /r:"%ROOT%lib\webview2\Microsoft.Web.WebView2.Core.dll" ^
+    /r:"%ROOT%lib\webview2\Microsoft.Web.WebView2.WinForms.dll" ^
     /res:"%ROOT%bin\gui.zip",gui.zip ^
     /res:"%ROOT%gui\logo.ico",logo.ico ^
     /res:"%ROOT%bin\WinHealthAudit.Core.exe",WinHealthAudit.Core.exe ^
+    /res:"%ROOT%lib\webview2\Microsoft.Web.WebView2.Core.dll",Microsoft.Web.WebView2.Core.dll ^
+    /res:"%ROOT%lib\webview2\Microsoft.Web.WebView2.WinForms.dll",Microsoft.Web.WebView2.WinForms.dll ^
+    /res:"%ROOT%lib\webview2\WebView2Loader.dll",WebView2Loader.dll ^
     "%ROOT%src\Launcher\Program.cs"
 
 if errorlevel 1 (

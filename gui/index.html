@@ -444,6 +444,12 @@
         <span id="machine">—</span>
       </div>
 
+      <div class="cmd-search">
+        <input id="cmd-input" type="search" autocomplete="off" spellcheck="false" placeholder="Search tool or action..." data-i18n-ph="cmd.ph">
+        <span class="cmd-kbd">Ctrl K</span>
+        <div class="cmd-drop" id="cmd-drop"></div>
+      </div>
+
       <div class="header-right">
         <div class="settings-wrap">
           <button class="pill" id="settings-btn" data-i18n="btn.settings">Settings</button>
@@ -523,7 +529,16 @@
           </div>
         </div>
 
-        <button class="pill" id="elevation" data-i18n-title="title.elevation" title="start the app as administrator for full hardware details">no admin rights</button>
+        <div class="elev-wrap">
+          <button class="pill" id="elevation" data-i18n-title="title.elevation" title="start the app as administrator for full hardware details">no admin rights</button>
+          <div class="elev-pop" id="elev-pop">
+            <p data-i18n="elev.msg">Turn on administrator mode to install drivers, clean system files and repair Windows. Without it, some tools run in limited mode.</p>
+            <div class="mod-actions">
+              <button class="pill small solid" id="elev-go" data-i18n="elev.on">Turn on</button>
+              <button class="pill small" id="elev-no" data-i18n="elev.later">Not now</button>
+            </div>
+          </div>
+        </div>
         <div class="days-wrap">
           <button class="pill" id="days">14 d <span class="chevron">▾</span></button>
           <div class="menu" id="days-menu">
@@ -538,8 +553,8 @@
     </header>
 
     <nav class="mod-nav" id="mod-nav">
-      <button class="mod-btn active" data-mod="audit" data-en="Audit" data-ru="Аудит">Audit</button>
-      <button class="mod-btn" data-mod="overview" data-en="Overview" data-ru="Обзор">Overview</button>
+      <button class="mod-btn active" data-mod="overview" data-en="Overview" data-ru="Главная">Overview</button>
+      <button class="mod-btn" data-mod="audit" data-en="Audit" data-ru="Аудит">Audit</button>
       <button class="mod-btn" data-mod="monitor" data-en="Monitor" data-ru="Монитор">Monitor</button>
       <button class="mod-btn" data-mod="drivers" data-en="Drivers" data-ru="Драйверы">Drivers</button>
       <button class="mod-btn" data-mod="programs" data-en="Programs" data-ru="Программы">Programs</button>
@@ -638,8 +653,11 @@
 
   <!-- splash -->
   <div class="splash" id="splash">
-    <img class="mark" src="/logo.png" alt="">
+    <div class="splash-orbit">
+      <img class="mark" src="/logo.png" alt="">
+    </div>
     <div class="wordmark">WinHealthAudit \\ ESLL</div>
+    <div class="splash-status" id="splash-status">initializing...</div>
     <div class="bar"><i></i></div>
   </div>
 
@@ -649,6 +667,10 @@
     en: {
       "title.machine": "this computer's name (hostname)",
       "title.elevation": "start the app as administrator for full hardware details",
+      "cmd.ph": "Search for a tool or action...",
+      "elev.msg": "Turn on administrator mode to install drivers, clean system files and repair Windows. Without it, some tools run in limited mode.",
+      "elev.on": "Turn on",
+      "elev.later": "Not now",
       "btn.settings": "Settings",
       "btn.run": "Run audit",
       "btn.running": "Running…",
@@ -750,6 +772,10 @@
     ru: {
       "title.machine": "имя этого компьютера",
       "title.elevation": "запустите приложение от администратора для полных данных о железе",
+      "cmd.ph": "Поиск инструмента или действия...",
+      "elev.msg": "Включите режим администратора для установки драйверов, очистки системных файлов и восстановления Windows.",
+      "elev.on": "Включить",
+      "elev.later": "Не сейчас",
       "btn.settings": "Настройки",
       "btn.run": "Запустить",
       "btn.running": "Выполняется…",
@@ -1775,6 +1801,7 @@
   setInterval(refresh, 700);
 </script>
 <script src="/js/sounds.js"></script>
+<script src="/js/hw-icons.js"></script>
 <script src="/js/esll-core.js"></script>
 <script src="/js/modules/overview.js"></script>
 <script src="/js/modules/monitor.js"></script>
@@ -1790,21 +1817,80 @@
   document.querySelectorAll("#mod-nav .mod-btn").forEach(b => {
     b.onclick = () => WHA.switchModule(b.getAttribute("data-mod"));
   });
-  document.getElementById("elevation").onclick = async () => {
+  const elevBtn = document.getElementById("elevation");
+  const elevPop = document.getElementById("elev-pop");
+  elevBtn.onclick = (e) => {
+    e.stopPropagation();
     if (view.elevated) return;
-    const btn = document.getElementById("elevation");
-    btn.textContent = lang === "ru" ? "перезапуск..." : "restarting...";
+    elevPop.classList.toggle("open");
+    settingsPanel.classList.remove("open");
+    daysMenu.classList.remove("open");
+  };
+  document.getElementById("elev-no").onclick = () => elevPop.classList.remove("open");
+  document.getElementById("elev-go").onclick = async () => {
+    elevPop.classList.remove("open");
+    elevBtn.textContent = lang === "ru" ? "перезапуск..." : "restarting...";
     try {
       const r = await fetch("/api/restart-admin", { method: "POST" }).then(x => x.json());
       if (!r.ok) {
-        btn.textContent = t("val.noadmin");
-        if (window.WHASounds) window.WHASounds.play("error", 0.3);
+        elevBtn.textContent = t("val.noadmin");
+        if (window.WHASounds) window.WHASounds.play("error", 0.28);
         flash(r.error || (lang === "ru" ? "Отменено" : "Cancelled"));
       }
     } catch (e) {
-      btn.textContent = t("val.noadmin");
+      elevBtn.textContent = t("val.noadmin");
     }
   };
+
+  // Top command search (Ctrl+K)
+  const cmdInput = document.getElementById("cmd-input");
+  const cmdDrop = document.getElementById("cmd-drop");
+  const cmdActions = [
+    { mod: "overview", en: "Overview / Home", ru: "Главная / Обзор ПК" },
+    { mod: "audit", en: "Health Audit (11 Checks)", ru: "Аудит здоровья (11 проверок)" },
+    { mod: "monitor", en: "Live Monitor & Processes", ru: "Монитор ресурсов и процессы" },
+    { mod: "drivers", en: "Driver Updater & Backups", ru: "Драйверы и резервные копии" },
+    { mod: "programs", en: "Program Remover, Updater & Hangar", ru: "Программы, обновления и каталог" },
+    { mod: "storage", en: "Storage Checker & Duplicates", ru: "Анализатор дисков и дубликаты" },
+    { mod: "optimizer", en: "Super Optimizer, Debloat & Repairs", ru: "Оптимизация, деблоат и ремонт" },
+    { mod: "privacy", en: "Privacy & Security", ru: "Приватность и безопасность" },
+    { mod: "benchmark", en: "Benchmark Testing", ru: "Тестирование производительности" },
+    { mod: "tester", en: "Device Tester (Keyboard, Audio, Cam)", ru: "Тестер устройств (клавиатура, звук, камера)" },
+    { mod: "automation", en: "Automation & Restore Points", ru: "Автоматизация и точки восстановления" }
+  ];
+  function renderCmd(q) {
+    const lq = (q || "").toLowerCase();
+    const list = cmdActions.filter(a => !lq || (a.en + " " + a.ru + " " + a.mod).toLowerCase().includes(lq));
+    cmdDrop.innerHTML = list.map(a => `<div class="cmd-item" data-cmod="${a.mod}"><span>${lang === "ru" ? a.ru : a.en}</span><span style="opacity:.45">${a.mod}</span></div>`).join("");
+    cmdDrop.querySelectorAll("[data-cmod]").forEach(el => {
+      el.onclick = () => {
+        WHA.switchModule(el.getAttribute("data-cmod"));
+        cmdDrop.classList.remove("open");
+        cmdInput.value = "";
+      };
+    });
+  }
+  cmdInput.onfocus = () => { renderCmd(cmdInput.value); cmdDrop.classList.add("open"); };
+  cmdInput.oninput = () => { renderCmd(cmdInput.value); cmdDrop.classList.add("open"); };
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      cmdInput.focus();
+    }
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".elev-wrap")) elevPop.classList.remove("open");
+    if (!e.target.closest(".cmd-search")) cmdDrop.classList.remove("open");
+  });
+
+  // Switch to Overview as default start screen
+  WHA.switchModule("overview");
+
+  // Click Run audit switches to Audit tab if user is elsewhere
+  document.getElementById("run").addEventListener("click", () => {
+    WHA.switchModule("audit");
+  });
+
   const sndChk = document.getElementById("set-sounds");
   if (sndChk && window.WHASounds) {
     sndChk.checked = window.WHASounds.isEnabled();

@@ -32,6 +32,11 @@ function Get-InstalledPrograms {
             if ($seen.ContainsKey($key)) { return }
             $seen[$key] = $true
             $sizeMB = if ($_.EstimatedSize) { [math]::Round($_.EstimatedSize / 1024.0, 1) } else { 0 }
+            $iconPath = [string]$_.DisplayIcon
+            if (-not $iconPath -and $_.InstallLocation) {
+                $exe = Get-ChildItem -Path $_.InstallLocation -Filter '*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($exe) { $iconPath = $exe.FullName }
+            }
             $list += [pscustomobject]@{
                 name = $_.DisplayName
                 version = [string]$_.DisplayVersion
@@ -41,6 +46,7 @@ function Get-InstalledPrograms {
                 uninstall = [string]$_.UninstallString
                 quietUninstall = [string]$_.QuietUninstallString
                 installLocation = [string]$_.InstallLocation
+                icon = $iconPath
                 type = 'Win32'
             }
         }

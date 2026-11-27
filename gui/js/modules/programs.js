@@ -46,9 +46,14 @@
         const renderRows = (q) => {
           const fl = items.filter(x => !q || (x.name + ' ' + x.publisher).toLowerCase().includes(q));
           body.querySelector('#prg-cnt').textContent = fl.length;
-          body.querySelector('#prg-rows').innerHTML = fl.slice(0, 150).map((p, idx) => `
+          body.querySelector('#prg-rows').innerHTML = fl.slice(0, 150).map((p, idx) => {
+            const letter = esc((p.name || '?').trim().charAt(0).toUpperCase());
+            const iconHtml = p.icon
+              ? `<img src="/api/app-icon?p=${encodeURIComponent(p.icon)}" alt="" style="width:20px;height:20px;object-fit:contain;border-radius:4px;vertical-align:middle;margin-right:8px" onerror="this.style.display='none'">`
+              : `<span style="display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;border:1px solid var(--hair);border-radius:4px;font-size:10px;margin-right:8px;color:var(--dim)">${letter}</span>`;
+            return `
             <tr>
-              <td>${esc(p.name)}</td>
+              <td>${iconHtml}${esc(p.name)}</td>
               <td>${esc(p.publisher)}</td>
               <td class="mono">${esc(p.version)}</td>
               <td class="mono">${p.sizeMB ? p.sizeMB + ' MB' : '—'}</td>
@@ -56,7 +61,8 @@
                 <button class="hidebtn" data-left="${idx}">${t('Leftovers', 'Остатки')}</button>
                 <button class="hidebtn" data-uninst="${idx}">${t('Uninstall', 'Удалить')}</button>
               </td>
-            </tr>`).join('');
+            </tr>`;
+          }).join('');
 
           body.querySelectorAll('[data-uninst]').forEach(b => {
             b.onclick = async () => {
@@ -159,16 +165,21 @@
         };
         const renderGrid = (list) => {
           const grid = body.querySelector('#hng-grid');
-          grid.innerHTML = list.map(a => `
+          grid.innerHTML = list.map(a => {
+            const abbr = esc((a.name || '?').slice(0, 2).toUpperCase());
+            return `
             <div class="esll-card" style="cursor:pointer;border-color:${selected.has(a.id) ? '#fff' : 'var(--hair)'}" data-hid="${esc(a.id)}">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <b>${esc(a.name)}</b>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span style="width:28px;height:28px;border-radius:7px;border:1px solid var(--hair);background:rgba(255,255,255,.06);display:inline-flex;align-items:center;justify-content:center;font-size:11px;letter-spacing:.08em">${abbr}</span>
+                  <b>${esc(a.name)}</b>
+                </div>
                 <span class="badge">${esc(a.cat || a.version || 'winget')}</span>
               </div>
               <div class="esll-meta">${esc(a.desc || a.id)}</div>
               <div class="esll-meta mono" style="opacity:.6">${esc(a.id)}</div>
-            </div>
-          `).join('');
+            </div>`;
+          }).join('');
           grid.querySelectorAll('[data-hid]').forEach(card => {
             card.onclick = () => {
               const id = card.getAttribute('data-hid');
