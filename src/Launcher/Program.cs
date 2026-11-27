@@ -310,6 +310,7 @@ namespace WinHealthAudit.Window
                             "\" -NoBrowser -Port " + port +
                             " -Engine \"" + engine + "\"" +
                             " -Launcher \"" + exePath + "\"",
+                WorkingDirectory = Path.GetDirectoryName(script),
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
