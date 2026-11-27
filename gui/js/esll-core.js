@@ -112,6 +112,8 @@ window.WHA = (function () {
     auditEls.forEach(function (el) {
       if (el) el.classList.toggle('hidden', !isAudit);
     });
+    const crit = document.getElementById('audit-criteria');
+    if (crit && !isAudit) crit.classList.add('hidden');
 
     const modView = document.getElementById('mod-view');
     if (modView) {
