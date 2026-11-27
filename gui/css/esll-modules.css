@@ -529,11 +529,11 @@
 /* Settings Panel -> Centered Modal */
 #settings-panel.panel {
   position: fixed;
-  top: 50%;
-  left: 50%;
+  inset: 0;
+  margin: auto;
   right: auto;
-  transform: translate(-50%, -50%);
   width: min(680px, calc(100vw - 48px));
+  height: fit-content;
   max-height: 85vh;
   overflow-y: auto;
   padding: 26px 28px;
