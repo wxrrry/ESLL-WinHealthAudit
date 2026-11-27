@@ -39,20 +39,52 @@ if errorlevel 1 (
     exit /b 1
 )
 
+rem --- package gui bundle ---------------------------------------------------
+echo [2/3] Packaging gui bundle...
+if exist "%ROOT%bin\gui.zip" del /f /q "%ROOT%bin\gui.zip"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::CreateFromDirectory('%ROOT%gui', '%ROOT%bin\gui.zip')"
+if errorlevel 1 (
+    echo.
+    echo GUI bundle packaging failed.
+    exit /b 1
+)
+
 rem --- window launcher: one exe with everything inside ----------------------------
-echo [2/2] WinHealthAudit.exe (the app)...
+echo [3/4] WinHealthAudit.exe (the app)...
 "%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /warn:4 ^
     /main:WinHealthAudit.Window.Launcher ^
     /out:"%ROOT%bin\WinHealthAudit.exe" ^
     /win32icon:"%ROOT%gui\logo.ico" ^
     /r:System.dll ^
     /r:System.Core.dll ^
-    /res:"%ROOT%gui\app.ps1",app.ps1 ^
-    /res:"%ROOT%gui\index.html",index.html ^
-    /res:"%ROOT%gui\logo.png",logo.png ^
+    /r:System.IO.Compression.dll ^
+    /r:System.IO.Compression.FileSystem.dll ^
+    /res:"%ROOT%bin\gui.zip",gui.zip ^
     /res:"%ROOT%gui\logo.ico",logo.ico ^
     /res:"%ROOT%bin\WinHealthAudit.Core.exe",WinHealthAudit.Core.exe ^
     "%ROOT%src\Launcher\Program.cs"
+
+if errorlevel 1 (
+    echo.
+    echo Build failed.
+    exit /b 1
+)
+
+rem --- setup installer: embeds both WinHealthAudit.exe and WinHealthAudit.Core.exe
+echo [4/4] WinHealthAudit-Setup.exe (installer)...
+"%CSC%" /nologo /target:winexe /platform:anycpu /optimize+ /warn:4 ^
+    /main:WinHealthAudit.Installer.Program ^
+    /out:"%ROOT%bin\WinHealthAudit-Setup.exe" ^
+    /win32icon:"%ROOT%gui\logo.ico" ^
+    /r:System.dll ^
+    /r:System.Core.dll ^
+    /r:System.Drawing.dll ^
+    /r:System.Windows.Forms.dll ^
+    /r:Microsoft.CSharp.dll ^
+    /res:"%ROOT%gui\logo.ico",logo.ico ^
+    /res:"%ROOT%bin\WinHealthAudit.exe",WinHealthAudit.exe ^
+    /res:"%ROOT%bin\WinHealthAudit.Core.exe",WinHealthAudit.Core.exe ^
+    "%ROOT%src\Installer\Program.cs"
 
 if errorlevel 1 (
     echo.

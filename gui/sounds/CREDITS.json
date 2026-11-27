@@ -1,0 +1,608 @@
+[
+ {
+  "event": "achievement",
+  "id": "achievement.orbital-achievement",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 1200
+ },
+ {
+  "event": "admin_granted",
+  "id": "admin_granted.orbital-admin-granted",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 935
+ },
+ {
+  "event": "app_exit",
+  "id": "app_exit.orbital-app-exit",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 1200
+ },
+ {
+  "event": "app_start",
+  "id": "app_start.orbital-app-start",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 2423
+ },
+ {
+  "event": "click",
+  "id": "click.orbital-click",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 154
+ },
+ {
+  "event": "copy",
+  "id": "copy.orbital-copy",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 279
+ },
+ {
+  "event": "count_tick_1",
+  "id": "count_tick.orbital-blip-1",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 19,
+  "note": "a muted dry blip, one of four micro-variants, for a number counting up on screen"
+ },
+ {
+  "event": "count_tick_2",
+  "id": "count_tick.orbital-blip-2",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 19,
+  "note": "a muted dry blip, one of four micro-variants, for a number counting up on screen"
+ },
+ {
+  "event": "count_tick_3",
+  "id": "count_tick.orbital-blip-3",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 19,
+  "note": "a muted dry blip, one of four micro-variants, for a number counting up on screen"
+ },
+ {
+  "event": "count_tick_4",
+  "id": "count_tick.orbital-blip-4",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 19,
+  "note": "a muted dry blip, one of four micro-variants, for a number counting up on screen"
+ },
+ {
+  "event": "delete",
+  "id": "delete.orbital-delete",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 399
+ },
+ {
+  "event": "device_connected",
+  "id": "device_connected.orbital-device-connected",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 694
+ },
+ {
+  "event": "device_disconnected",
+  "id": "device_disconnected.orbital-device-disconnected",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 671
+ },
+ {
+  "event": "dropdown",
+  "id": "dropdown.orbital-dropdown",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 221
+ },
+ {
+  "event": "error",
+  "id": "error.orbital-error",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 606
+ },
+ {
+  "event": "focus_move",
+  "id": "focus_move.orbital-focus-move",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 115
+ },
+ {
+  "event": "hover",
+  "id": "hover_soft.orbital-low-glass",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 70,
+  "note": "level raised to the primary hover's loudness"
+ },
+ {
+  "event": "hover_soft",
+  "id": "hover_soft.freesound-hover-muted",
+  "family": "Freesound: unfa (derived)",
+  "license": "CC0-1.0",
+  "author": "unfa",
+  "sourceUrl": "https://freesound.org/people/unfa/sounds/565131/",
+  "attribution": "",
+  "durationMs": 60,
+  "note": "a touch quieter (-1.5 dB)"
+ },
+ {
+  "event": "key_press",
+  "id": "key_press.orbital-key-press",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 132
+ },
+ {
+  "event": "key_type",
+  "id": "key_type.orbital-soft",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 31
+ },
+ {
+  "event": "loading",
+  "id": "loading.orbital-sonar",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_loading.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 2100,
+  "note": "one seamless 2.1 s cycle (a ping and two echoes, one Driver Updater radar sweep), looped while a loading indicator is on screen"
+ },
+ {
+  "event": "map_hover",
+  "id": "map_hover.orbital-dot",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 16
+ },
+ {
+  "event": "navigate_click",
+  "id": "navigate_click.orbital-trackpad",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 30
+ },
+ {
+  "event": "navigate_swoosh_1",
+  "id": "navigate_swoosh.orbital-rise",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 270
+ },
+ {
+  "event": "navigate_swoosh_2",
+  "id": "navigate_swoosh.orbital-fall",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 257
+ },
+ {
+  "event": "navigate_swoosh_3",
+  "id": "navigate_swoosh.orbital-arc",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 284
+ },
+ {
+  "event": "navigate_swoosh_4",
+  "id": "navigate_swoosh.orbital-glint",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 290
+ },
+ {
+  "event": "navigate_swoosh_5",
+  "id": "navigate_swoosh.orbital-pan",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 283
+ },
+ {
+  "event": "navigate_swoosh_6",
+  "id": "navigate_swoosh.orbital-breath",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 278
+ },
+ {
+  "event": "navigate_swoosh_7",
+  "id": "navigate_swoosh.orbital-tonal",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 268
+ },
+ {
+  "event": "palette_open",
+  "id": "palette_open.orbital-palette-open",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 563
+ },
+ {
+  "event": "panel_close",
+  "id": "panel_close.orbital-panel-close",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 332
+ },
+ {
+  "event": "panel_open",
+  "id": "panel_open.orbital-panel-open",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 478
+ },
+ {
+  "event": "percent_step_0",
+  "id": "percent_step.orbital-glass-pluck-E5",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at E5 (+0 semitones, E major pentatonic), step 0 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_1",
+  "id": "percent_step.orbital-glass-pluck-F#5",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at F#5 (+2 semitones, E major pentatonic), step 1 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_2",
+  "id": "percent_step.orbital-glass-pluck-G#5",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at G#5 (+4 semitones, E major pentatonic), step 2 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_3",
+  "id": "percent_step.orbital-glass-pluck-B5",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at B5 (+7 semitones, E major pentatonic), step 3 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_4",
+  "id": "percent_step.orbital-glass-pluck-C#6",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at C#6 (+9 semitones, E major pentatonic), step 4 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_5",
+  "id": "percent_step.orbital-glass-pluck-E6",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at E6 (+12 semitones, E major pentatonic), step 5 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_6",
+  "id": "percent_step.orbital-glass-pluck-F#6",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at F#6 (+14 semitones, E major pentatonic), step 6 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_7",
+  "id": "percent_step.orbital-glass-pluck-G#6",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at G#6 (+16 semitones, E major pentatonic), step 7 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "percent_step_8",
+  "id": "percent_step.orbital-glass-pluck-B6",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/build_round8.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 57,
+  "note": "a soft glass pluck at B6 (+19 semitones, E major pentatonic), step 8 of 9 at equal loudness, for a percentage rising on screen"
+ },
+ {
+  "event": "progress_tick",
+  "id": "progress_tick.orbital-progress-tick",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 27
+ },
+ {
+  "event": "refresh",
+  "id": "refresh.orbital-refresh",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 498
+ },
+ {
+  "event": "scan_complete",
+  "id": "scan_complete.orbital-tick-up",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 247
+ },
+ {
+  "event": "scan_start",
+  "id": "scan_start.orbital-pulse",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 270
+ },
+ {
+  "event": "screenshot",
+  "id": "screenshot.orbital-screenshot",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 208
+ },
+ {
+  "event": "success",
+  "id": "success.orbital-success",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 1002
+ },
+ {
+  "event": "tab_switch",
+  "id": "tab_switch.orbital-tab-switch",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 212
+ },
+ {
+  "event": "toast",
+  "id": "toast.jcsounds-single-2",
+  "family": "JC Sounds",
+  "license": "CC-BY-4.0",
+  "author": "JC Sounds",
+  "sourceUrl": "https://opengameart.org/content/jc-sounds-ui-utility-pack-vol-1",
+  "attribution": "\"UI_Single_Set 2_01.wav\" from \"UI Utility Pack Vol 1\" — Credit: JC Sounds (https://opengameart.org/content/jc-sounds-ui-utility-pack-vol-1), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Modified: trimmed, faded and loudness-normalized.",
+  "durationMs": 400
+ },
+ {
+  "event": "toggle_off",
+  "id": "toggle_off.orbital-toggle-off",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 320
+ },
+ {
+  "event": "toggle_on",
+  "id": "toggle_on.orbital-toggle-on",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 297
+ },
+ {
+  "event": "unavailable",
+  "id": "unavailable.orbital-unavailable",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 245
+ },
+ {
+  "event": "undo",
+  "id": "undo.orbital-undo",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 302
+ },
+ {
+  "event": "update_available",
+  "id": "update_available.orbital-update-available",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 960
+ },
+ {
+  "event": "update_installed",
+  "id": "update_installed.orbital-update-installed",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 1200
+ },
+ {
+  "event": "warning",
+  "id": "warning.orbital-warning",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 583
+ },
+ {
+  "event": "widget_off",
+  "id": "widget_off.orbital-widget-off",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 368
+ },
+ {
+  "event": "widget_on",
+  "id": "widget_on.orbital-widget-on",
+  "family": "Orbital (original)",
+  "license": "CC0-1.0",
+  "author": "StellarHub project (procedurally generated, _tools/orbital_synth.py)",
+  "sourceUrl": "",
+  "attribution": "",
+  "durationMs": 380
+ }
+]

@@ -1,0 +1,262 @@
+/* ESLL WinHealthAudit — Extended Monochrome Module Styles & Animations */
+
+@keyframes whaFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes whaBreath {
+  0%, 100% { opacity: .44; transform: scale(1); }
+  50%      { opacity: .54; transform: scale(1.03); }
+}
+
+.backdrop::before {
+  animation: whaBreath 14s ease-in-out infinite;
+}
+
+.pill, .mod-btn, .filter, .hidebtn {
+  transition: transform .1s ease, border-color .15s ease, color .15s ease, background .15s ease;
+}
+.pill:active, .mod-btn:active, .filter:active, .hidebtn:active {
+  transform: scale(0.96);
+}
+
+.esll-card, .row {
+  animation: whaFadeUp .22s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.mod-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--hair);
+}
+
+.mod-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--faint);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.mod-btn:hover { color: var(--fg); border-color: var(--hair); }
+.mod-btn.active {
+  background: var(--fg);
+  color: #000;
+  border-color: var(--fg);
+}
+
+.mod-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.mod-view::-webkit-scrollbar { width: 6px; }
+.mod-view::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); }
+
+.mod-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.mod-title {
+  font-size: 22px;
+  font-weight: 200;
+  letter-spacing: .04em;
+}
+.mod-sub {
+  font-size: 12px;
+  color: var(--dim);
+  margin-top: 2px;
+}
+.mod-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.subtabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--hair);
+  margin-bottom: 18px;
+}
+.subtab {
+  background: none; border: 0; font: inherit;
+  font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--faint); cursor: pointer; padding: 6px 0 10px;
+  border-bottom: 1px solid transparent;
+}
+.subtab:hover { color: var(--dim); }
+.subtab.active { color: var(--fg); border-bottom-color: var(--fg); }
+
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 980px) {
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+.esll-card {
+  background: rgba(255, 255, 255, .025);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.esll-card h4 {
+  font-size: 10px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 400;
+  margin-bottom: 10px;
+}
+.esll-big {
+  font-size: 36px;
+  font-weight: 200;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.esll-big small { font-size: 15px; color: var(--dim); margin-left: 4px; }
+.esll-meta { font-size: 12px; color: var(--dim); margin-top: 6px; word-break: break-word; }
+
+.meter {
+  height: 4px;
+  background: rgba(255,255,255,.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.meter > i {
+  display: block;
+  height: 100%;
+  background: var(--fg);
+  transition: width .3s ease;
+}
+
+.esll-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.esll-table th {
+  font-size: 10px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--faint);
+  font-weight: 400;
+  text-align: left;
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--hair);
+}
+.esll-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  color: var(--dim);
+  vertical-align: middle;
+}
+.esll-table tr:hover td { background: rgba(255,255,255,.035); color: var(--fg); }
+.esll-table td.mono { font-family: Consolas, monospace; font-size: 12px; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border: 1px solid var(--hair);
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.badge.solid { background: var(--fg); color: #000; border-color: var(--fg); }
+.badge.warn { border-color: rgba(255,255,255,.45); color: var(--fg); }
+
+.job-log {
+  margin-top: 14px;
+  background: rgba(0,0,0,.55);
+  border: 1px solid var(--hair);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: var(--dim);
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.treemap-bar {
+  display: flex;
+  height: 28px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--hair);
+  margin-bottom: 16px;
+}
+.treemap-seg {
+  height: 100%;
+  border-right: 1px solid #000;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.treemap-seg:hover { opacity: .8; }
+
+/* Device Tester: Keyboard & Gamepad */
+.kbd-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid var(--hair);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+.kbd-row { display: flex; gap: 5px; }
+.kbd-key {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--hair);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--dim);
+  background: rgba(255,255,255,.03);
+  user-select: none;
+  transition: background .08s, color .08s, border-color .08s;
+}
+.kbd-key.hit { border-color: rgba(255,255,255,.55); color: var(--fg); background: rgba(255,255,255,.14); }
+.kbd-key.down { background: var(--fg); color: #000; border-color: var(--fg); }
+
+.pixel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 32px;
+  cursor: pointer;
+}
+.pixel-hint {
+  background: rgba(0,0,0,.72);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}

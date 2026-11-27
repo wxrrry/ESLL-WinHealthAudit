@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -46,10 +47,16 @@ namespace WinHealthAudit.Window
                 "WinHealthAudit", "gui");
             Directory.CreateDirectory(dataDir);
 
-            var script = Extract(dataDir, "app.ps1", true);
-            Extract(dataDir, "index.html", true);
-            Extract(dataDir, "logo.png", true);
-            Extract(dataDir, "logo.ico", false);
+            ExtractGuiBundle(dataDir);
+
+            var script = Path.Combine(dataDir, "app.ps1");
+            if (!File.Exists(script))
+            {
+                script = Extract(dataDir, "app.ps1", true);
+                Extract(dataDir, "index.html", true);
+                Extract(dataDir, "logo.png", true);
+                Extract(dataDir, "logo.ico", false);
+            }
 
             var engine = ExtractEngine(Path.GetDirectoryName(dataDir)) ??
                          FindEngine(dir);
@@ -103,6 +110,38 @@ namespace WinHealthAudit.Window
                 "WinHealthAudit.Core.exe was not found next to " +
                 Path.GetFileName(Assembly.GetEntryAssembly().Location) +
                 ". Put both files in the same folder.");
+        }
+
+        private static void ExtractGuiBundle(string dataDir)
+        {
+            using (var stream = Assembly.GetEntryAssembly().GetManifestResourceStream("gui.zip"))
+            {
+                if (stream == null) return;
+
+                var zipPath = Path.Combine(Path.GetDirectoryName(dataDir), "gui.zip");
+                var buffer = new MemoryStream();
+                stream.CopyTo(buffer);
+                var bytes = buffer.ToArray();
+
+                var marker = Path.Combine(dataDir, "app.ps1");
+                if (File.Exists(zipPath) && File.Exists(marker) && Same(File.ReadAllBytes(zipPath), bytes))
+                {
+                    return;
+                }
+
+                File.WriteAllBytes(zipPath, bytes);
+                using (var archive = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read))
+                {
+                    foreach (var entry in archive.Entries)
+                    {
+                        if (string.IsNullOrEmpty(entry.Name)) continue;
+                        var dest = Path.GetFullPath(Path.Combine(dataDir, entry.FullName));
+                        if (!dest.StartsWith(Path.GetFullPath(dataDir), StringComparison.OrdinalIgnoreCase)) continue;
+                        Directory.CreateDirectory(Path.GetDirectoryName(dest));
+                        entry.ExtractToFile(dest, true);
+                    }
+                }
+            }
         }
 
         private static string Extract(string dir, string name, bool required)

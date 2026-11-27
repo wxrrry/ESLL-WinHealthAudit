@@ -596,7 +596,130 @@ function Start-Tray {
     }
 }
 
-function Handle-Request($stream, [string]$method, [string]$target) {
+$script:bgJobs = @{}
+$script:bgJobSeq = 0
+
+function Start-BgJob([string]$mod, [string]$action, $payload) {
+    $script:bgJobSeq++
+    $id = 'job-' + $script:bgJobSeq
+    $modFile = Join-Path (Join-Path $guiDir 'api') ($mod + '.ps1')
+    if (-not (Test-Path -LiteralPath $modFile)) {
+        throw "Unknown module: $mod"
+    }
+
+    $payloadJson = if ($payload) { $payload | ConvertTo-Json -Depth 8 -Compress } else { '{}' }
+    $logFile = Join-Path $env:TEMP ("wha-" + $id + ".log")
+    $resFile = Join-Path $env:TEMP ("wha-" + $id + ".json")
+
+    $job = Start-Job -ScriptBlock {
+        param($modFile, $action, $payloadJson, $logFile, $resFile, $settingsDir)
+        $ErrorActionPreference = 'Stop'
+        $script:WhaLogFile = $logFile
+        $script:WhaSettingsDir = $settingsDir
+        function Write-JobLog([string]$msg) {
+            $line = '[' + (Get-Date -Format 'HH:mm:ss') + '] ' + $msg
+            Add-Content -Path $script:WhaLogFile -Value $line -Encoding UTF8
+        }
+        . $modFile
+        $argsObj = if ($payloadJson) { $payloadJson | ConvertFrom-Json } else { [pscustomobject]@{} }
+        $fnName = 'Invoke-' + ($modFile | Split-Path -Leaf).Replace('.ps1', '') + 'Action'
+        $out = & $fnName $action $argsObj
+        $out | ConvertTo-Json -Depth 8 -Compress | Set-Content -Path $resFile -Encoding UTF8
+    } -ArgumentList $modFile, $action, $payloadJson, $logFile, $resFile, $settingsDir
+
+    $script:bgJobs[$id] = [pscustomobject]@{
+        id      = $id
+        mod     = $mod
+        action  = $action
+        job     = $job
+        logFile = $logFile
+        resFile = $resFile
+        started = (Get-Date).ToString('o')
+    }
+    return $id
+}
+
+function Get-BgJobStatus([string]$id) {
+    if (-not $script:bgJobs.ContainsKey($id)) { return $null }
+    $entry = $script:bgJobs[$id]
+    $j = $entry.job
+    $logs = @()
+    if (Test-Path -LiteralPath $entry.logFile) {
+        try { $logs = @(Get-Content -Path $entry.logFile -Encoding UTF8 -Tail 120) } catch { }
+    }
+    $state = [string]$j.State
+    $done = ($state -in @('Completed', 'Failed', 'Stopped'))
+    $result = $null
+    $err = $null
+    if ($done) {
+        if ($state -eq 'Failed') {
+            $err = ($j.ChildJobs[0].JobStateInfo.Reason.Message)
+            if (-not $err) { $err = 'Job failed' }
+        } elseif (Test-Path -LiteralPath $entry.resFile) {
+            try { $result = Get-Content -Path $entry.resFile -Raw -Encoding UTF8 | ConvertFrom-Json } catch { }
+        }
+    }
+    return [pscustomobject]@{
+        id      = $id
+        mod     = $entry.mod
+        action  = $entry.action
+        state   = $state
+        done    = $done
+        logs    = $logs
+        result  = $result
+        error   = $err
+    }
+}
+
+function Stop-BgJob([string]$id) {
+    if (-not $script:bgJobs.ContainsKey($id)) { return $false }
+    $entry = $script:bgJobs[$id]
+    try { Stop-Job -Job $entry.job -ErrorAction SilentlyContinue } catch { }
+    return $true
+}
+
+function Invoke-ModuleEndpoint([string]$mod, [string]$action, [string]$query, [string]$bodyText) {
+    $safeMod = ($mod -replace '[^a-zA-Z0-9_-]', '')
+    $modFile = Join-Path (Join-Path $guiDir 'api') ($safeMod + '.ps1')
+    if (-not (Test-Path -LiteralPath $modFile)) {
+        return [pscustomobject]@{ ok = $false; error = "Module not found: $safeMod" }
+    }
+    . $modFile
+    $argsObj = [pscustomobject]@{}
+    if ($bodyText) {
+        try { $argsObj = $bodyText | ConvertFrom-Json } catch { }
+    } elseif ($query) {
+        $ht = @{}
+        foreach ($pair in ($query -split '&')) {
+            if (-not $pair) { continue }
+            $kv = $pair -split '=', 2
+            $k = [Uri]::UnescapeDataString($kv[0])
+            $v = if ($kv.Count -gt 1) { [Uri]::UnescapeDataString($kv[1]) } else { '' }
+            $ht[$k] = $v
+        }
+        $argsObj = [pscustomobject]$ht
+    }
+    $script:WhaSettingsDir = $settingsDir
+    $fnName = 'Invoke-' + $safeMod + 'Action'
+    return (& $fnName $action $argsObj)
+}
+
+function Get-MimeType([string]$filePath) {
+    switch ([System.IO.Path]::GetExtension($filePath).ToLowerInvariant()) {
+        '.html' { return 'text/html; charset=utf-8' }
+        '.css'  { return 'text/css; charset=utf-8' }
+        '.js'   { return 'application/javascript; charset=utf-8' }
+        '.json' { return 'application/json; charset=utf-8' }
+        '.png'  { return 'image/png' }
+        '.ico'  { return 'image/x-icon' }
+        '.svg'  { return 'image/svg+xml' }
+        '.ogg'  { return 'audio/ogg' }
+        '.woff2' { return 'font/woff2' }
+        default { return 'application/octet-stream' }
+    }
+}
+
+function Handle-Request($stream, [string]$method, [string]$target, [string]$bodyText = '') {
     $path = $target
     $query = ''
     $question = $target.IndexOf('?')
@@ -605,8 +728,49 @@ function Handle-Request($stream, [string]$method, [string]$target) {
         $query = $target.Substring($question + 1)
     }
 
+    if ($path -match '^/api/mod/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)$') {
+        $mod = $Matches[1]; $act = $Matches[2]
+        try {
+            $res = Invoke-ModuleEndpoint $mod $act $query $bodyText
+            Send-Json $stream $res
+        } catch {
+            Send-Json $stream ([pscustomobject]@{ ok = $false; error = $_.Exception.Message })
+        }
+        return
+    }
+
+    if ($path -eq '/api/job/start') {
+        try {
+            $body = if ($bodyText) { $bodyText | ConvertFrom-Json } else { [pscustomobject]@{} }
+            $jid = Start-BgJob $body.mod $body.action $body.args
+            Send-Json $stream ([pscustomobject]@{ ok = $true; id = $jid })
+        } catch {
+            Send-Json $stream ([pscustomobject]@{ ok = $false; error = $_.Exception.Message })
+        }
+        return
+    }
+
+    if ($path -eq '/api/job/status') {
+        $jid = ''
+        if ($query -match 'id=([^&]+)') { $jid = [Uri]::UnescapeDataString($Matches[1]) }
+        $st = Get-BgJobStatus $jid
+        if ($st) { Send-Json $stream $st } else { Send-Text $stream '404 Not Found' 'job not found' }
+        return
+    }
+
+    if ($path -eq '/api/job/cancel') {
+        $jid = ''
+        if ($query -match 'id=([^&]+)') { $jid = [Uri]::UnescapeDataString($Matches[1]) }
+        $ok = Stop-BgJob $jid
+        Send-Json $stream ([pscustomobject]@{ ok = $ok })
+        return
+    }
+
     switch ($path) {
-        '/' { Send-Response $stream '200 OK' 'text/html; charset=utf-8' $html }
+        '/' {
+            $htmlNow = [System.IO.File]::ReadAllBytes($page)
+            Send-Response $stream '200 OK' 'text/html; charset=utf-8' $htmlNow
+        }
 
         '/logo.png' {
             $logo = Join-Path $guiDir 'logo.png'
@@ -614,6 +778,15 @@ function Handle-Request($stream, [string]$method, [string]$target) {
                 Send-Response $stream '200 OK' 'image/png' ([System.IO.File]::ReadAllBytes($logo))
             } else {
                 Send-Text $stream '404 Not Found' 'no logo'
+            }
+        }
+
+        '/logo.ico' {
+            $ico = Join-Path $guiDir 'logo.ico'
+            if (Test-Path $ico) {
+                Send-Response $stream '200 OK' 'image/x-icon' ([System.IO.File]::ReadAllBytes($ico))
+            } else {
+                Send-Text $stream '404 Not Found' 'no icon'
             }
         }
 
@@ -709,7 +882,30 @@ function Handle-Request($stream, [string]$method, [string]$target) {
             }
         }
 
-        default { Send-Text $stream '404 Not Found' 'not found' }
+        '/api/restart-admin' {
+            try {
+                if ($Launcher -and (Test-Path -LiteralPath $Launcher)) {
+                    Start-Process -FilePath $Launcher -Verb RunAs
+                } else {
+                    $psArgs = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '" -NoBrowser -Port ' + $Port
+                    Start-Process -FilePath 'powershell.exe' -ArgumentList $psArgs -Verb RunAs
+                }
+                Send-Json $stream ([pscustomobject]@{ ok = $true })
+            } catch {
+                Send-Json $stream ([pscustomobject]@{ ok = $false; error = $_.Exception.Message })
+            }
+        }
+
+        default {
+            $rel = $path.TrimStart('/').Replace('/', '\')
+            $staticPath = [System.IO.Path]::GetFullPath((Join-Path $guiDir $rel))
+            $guiRoot = [System.IO.Path]::GetFullPath($guiDir)
+            if ($rel -and $staticPath.StartsWith($guiRoot, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $staticPath -PathType Leaf)) {
+                Send-Response $stream '200 OK' (Get-MimeType $staticPath) ([System.IO.File]::ReadAllBytes($staticPath))
+            } else {
+                Send-Text $stream '404 Not Found' 'not found'
+            }
+        }
     }
 }
 
@@ -798,8 +994,24 @@ try {
 
             if ($requestLine) {
                 $parts = $requestLine.Split(' ')
-                while (($line = $reader.ReadLine()) -ne $null -and $line -ne '') { }
-                if ($parts.Length -ge 2) { Handle-Request $stream $parts[0] $parts[1] }
+                $contentLength = 0
+                while (($line = $reader.ReadLine()) -ne $null -and $line -ne '') {
+                    if ($line -match '^Content-Length:\s*(\d+)') {
+                        $contentLength = [int]$Matches[1]
+                    }
+                }
+                $bodyText = ''
+                if ($contentLength -gt 0 -and $contentLength -lt 4194304) {
+                    $buf = New-Object char[] $contentLength
+                    $read = 0
+                    while ($read -lt $contentLength) {
+                        $n = $reader.Read($buf, $read, $contentLength - $read)
+                        if ($n -le 0) { break }
+                        $read += $n
+                    }
+                    $bodyText = -join $buf[0..($read - 1)]
+                }
+                if ($parts.Length -ge 2) { Handle-Request $stream $parts[0] $parts[1] $bodyText }
             }
         } catch {
             try { Send-Text $stream '500 Internal Server Error' $_.Exception.Message } catch { }

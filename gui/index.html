@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>WinHealthAudit \\ ESLL</title>
 <link rel="icon" type="image/png" href="/logo.png">
+<link rel="stylesheet" href="/css/esll-modules.css">
 <style>
   :root {
     --bg: #000;
@@ -485,6 +486,12 @@
                 <span class="hintline" data-i18n="set.notify.hint">A tray balloon with the health score.</span></span>
             </label>
 
+            <label class="check">
+              <input type="checkbox" id="set-sounds" checked>
+              <span><span data-i18n="set.sounds">UI sound effects</span>
+                <span class="hintline" data-i18n="set.sounds.hint">Subtle audio feedback on clicks and scans.</span></span>
+            </label>
+
             <div class="set-row" style="display:block">
               <label data-i18n="set.rerun">Auto-repeat</label>
               <div class="seg" id="seg-rerun">
@@ -530,6 +537,20 @@
       </div>
     </header>
 
+    <nav class="mod-nav" id="mod-nav">
+      <button class="mod-btn active" data-mod="audit" data-en="Audit" data-ru="Аудит">Audit</button>
+      <button class="mod-btn" data-mod="overview" data-en="Overview" data-ru="Обзор">Overview</button>
+      <button class="mod-btn" data-mod="monitor" data-en="Monitor" data-ru="Монитор">Monitor</button>
+      <button class="mod-btn" data-mod="drivers" data-en="Drivers" data-ru="Драйверы">Drivers</button>
+      <button class="mod-btn" data-mod="programs" data-en="Programs" data-ru="Программы">Programs</button>
+      <button class="mod-btn" data-mod="storage" data-en="Storage" data-ru="Диски">Storage</button>
+      <button class="mod-btn" data-mod="optimizer" data-en="Optimizer" data-ru="Оптимизация">Optimizer</button>
+      <button class="mod-btn" data-mod="privacy" data-en="Privacy" data-ru="Приватность">Privacy</button>
+      <button class="mod-btn" data-mod="benchmark" data-en="Benchmark" data-ru="Тест ПК">Benchmark</button>
+      <button class="mod-btn" data-mod="tester" data-en="Tester" data-ru="Устройства">Tester</button>
+      <button class="mod-btn" data-mod="automation" data-en="Automation" data-ru="Задачи">Automation</button>
+    </nav>
+
     <section class="stats">
       <div class="stat"><div class="value" id="n-health">–</div><div class="label" data-i18n="stat.health">Health</div></div>
       <div class="stat"><div class="value" id="n-critical">–</div><div class="label" data-i18n="sev.critical">Critical</div></div>
@@ -571,6 +592,8 @@
       <div class="list hidden" id="page-history"></div>
       <div class="log hidden" id="page-log"></div>
     </main>
+
+    <div class="mod-view hidden" id="mod-view"></div>
 
     <footer>
       <div class="status" id="status">…</div>
@@ -648,6 +671,8 @@
       "tab.log": "Log",
       "set.notify": "Notify when a run finishes",
       "set.notify.hint": "A tray balloon with the health score.",
+      "set.sounds": "UI sound effects",
+      "set.sounds.hint": "Subtle audio feedback on clicks and scans.",
       "set.rerun": "Auto-repeat",
       "set.rerun.hint": "Runs the audit again automatically while the window is open.",
       "rerun.off": "off",
@@ -806,6 +831,8 @@
       "set.autorun.hint": "Свежий отчёт при каждом запуске приложения.",
       "set.startwin": "Запускать вместе с Windows",
       "set.startwin.hint": "Добавляет одну запись приложения в автозагрузку пользователя.",
+      "set.sounds": "Звуковые эффекты",
+      "set.sounds.hint": "Тихий отклик на нажатия и проверки.",
       "set.folder": "Папка для отчётов",
       "set.folder.ph": "по умолчанию: %LOCALAPPDATA%\\WinHealthAudit\\reports",
       "set.openfolder": "Открыть",
@@ -897,13 +924,18 @@
   }
 
   function applyLang() {
+    window.WHA_LANG = lang;
     document.documentElement.lang = lang;
     document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
     document.querySelectorAll("[data-i18n-html]").forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });
     document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
     document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
     document.querySelectorAll("#seg-lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+    document.querySelectorAll("#mod-nav .mod-btn").forEach(b => {
+      b.textContent = lang === "ru" ? (b.dataset.ru || b.dataset.en) : b.dataset.en;
+    });
     renderIntro();
+    if (window.WHA && window.WHA.refreshActiveModule) window.WHA.refreshActiveModule();
   }
 
   /* ---------------------------------------------------------------- state */
@@ -923,12 +955,24 @@
   if (params.get("lang") === "ru" || params.get("lang") === "en") lang = params.get("lang");
   if (params.get("nosplash") === "1") document.getElementById("splash").style.display = "none";
 
+  let lastStateSig = "";
+  let prevPhase = "idle";
+
   async function refresh() {
     try {
       const response = await fetch("/api/state", { cache: "no-store" });
-      view = await response.json();
+      const next = await response.json();
+      const sig = JSON.stringify(next);
+      view = next;
       onFirstState();
-      render();
+      if (prevPhase === "running" && view.phase === "done" && window.WHASounds) {
+        window.WHASounds.play("scan_complete", 0.3);
+      }
+      prevPhase = view.phase;
+      if (sig !== lastStateSig) {
+        lastStateSig = sig;
+        render();
+      }
     } catch (error) {
       document.getElementById("status").textContent = t("status.waiting");
     }
@@ -1010,8 +1054,10 @@
     const counts = result ? result.counts : null;
 
     document.getElementById("machine").textContent = (result && result.machine) || view.machine || "—";
-    document.getElementById("elevation").textContent =
-      view.elevated ? t("val.admin") : t("val.noadmin");
+    const elevBtn = document.getElementById("elevation");
+    elevBtn.textContent = view.elevated ? t("val.admin") : t("val.noadmin");
+    elevBtn.classList.toggle("solid", !!view.elevated);
+    elevBtn.style.cursor = view.elevated ? "default" : "pointer";
     renderDays();
 
     const banner = document.getElementById("hist-banner");
@@ -1727,6 +1773,44 @@
   applyLang();
   refresh();
   setInterval(refresh, 700);
+</script>
+<script src="/js/sounds.js"></script>
+<script src="/js/esll-core.js"></script>
+<script src="/js/modules/overview.js"></script>
+<script src="/js/modules/monitor.js"></script>
+<script src="/js/modules/drivers.js"></script>
+<script src="/js/modules/programs.js"></script>
+<script src="/js/modules/storage.js"></script>
+<script src="/js/modules/optimizer.js"></script>
+<script src="/js/modules/privacy.js"></script>
+<script src="/js/modules/benchmark.js"></script>
+<script src="/js/modules/tester.js"></script>
+<script src="/js/modules/automation.js"></script>
+<script>
+  document.querySelectorAll("#mod-nav .mod-btn").forEach(b => {
+    b.onclick = () => WHA.switchModule(b.getAttribute("data-mod"));
+  });
+  document.getElementById("elevation").onclick = async () => {
+    if (view.elevated) return;
+    const btn = document.getElementById("elevation");
+    btn.textContent = lang === "ru" ? "перезапуск..." : "restarting...";
+    try {
+      const r = await fetch("/api/restart-admin", { method: "POST" }).then(x => x.json());
+      if (!r.ok) {
+        btn.textContent = t("val.noadmin");
+        if (window.WHASounds) window.WHASounds.play("error", 0.3);
+        flash(r.error || (lang === "ru" ? "Отменено" : "Cancelled"));
+      }
+    } catch (e) {
+      btn.textContent = t("val.noadmin");
+    }
+  };
+  const sndChk = document.getElementById("set-sounds");
+  if (sndChk && window.WHASounds) {
+    sndChk.checked = window.WHASounds.isEnabled();
+    sndChk.onchange = () => window.WHASounds.setEnabled(sndChk.checked);
+  }
+  applyLang();
 </script>
 </body>
 </html>
