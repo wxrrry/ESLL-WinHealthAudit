@@ -1,17 +1,34 @@
 (function () {
-  const { t, esc, api, switchModule } = WHA;
+  const { t, esc, api, cache } = WHA;
   let liveTimer = null;
 
   async function render(root) {
-    root.innerHTML = `<div class="mod-head"><div><div class="mod-title">${t('Loading PC profile...', 'Загрузка профиля ПК...')}</div></div></div>`;
+    let ov = cache.ov;
+    let tel = cache.tel;
+    let cnt = cache.ovCounts;
+    let sec = cache.sec;
 
-    const [ov, tel, drv, prg, sec] = await Promise.all([
-      api('system', 'overview'),
-      api('system', 'telemetry'),
-      api('drivers', 'list'),
-      api('programs', 'installed'),
-      api('privacy', 'overview')
-    ]);
+    if (!ov || !tel) {
+      root.innerHTML = `<div class="mod-head"><div><div class="mod-title">${t('Loading PC profile...', 'Загрузка профиля ПК...')}</div></div></div>`;
+      const [rOv, rTel, rCnt, rSec] = await Promise.all([
+        api('system', 'overview'),
+        api('system', 'telemetry'),
+        api('system', 'overview_counts'),
+        api('privacy', 'overview')
+      ]);
+      ov = cache.ov = rOv;
+      tel = cache.tel = rTel;
+      cnt = cache.ovCounts = rCnt;
+      sec = cache.sec = rSec;
+    } else {
+      // Instant render from cache; refresh live telemetry quietly in background
+      api('system', 'telemetry').then(t2 => {
+        if (t2 && t2.ok) { cache.tel = t2; drawLiveBars(t2); }
+      });
+    }
+
+    const drv = { count: (cnt && cnt.drivers) || 0 };
+    const prg = { count: (cnt && cnt.programs) || 0 };
 
     if (!ov.ok) {
       root.innerHTML = `<div class="esll-card">${esc(ov.error || 'Error')}</div>`;
@@ -173,6 +190,7 @@
     if (liveTimer) clearInterval(liveTimer);
     liveTimer = setInterval(async () => {
       const t2 = await api('system', 'telemetry');
+      if (t2 && t2.ok) cache.tel = t2;
       drawLiveBars(t2);
     }, 2500);
   }

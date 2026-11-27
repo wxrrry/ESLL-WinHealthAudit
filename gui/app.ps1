@@ -793,13 +793,15 @@ function Handle-Request($stream, [string]$method, [string]$target, [string]$body
         '/api/app-icon' {
             $rawPath = ''
             if ($query -match 'p=([^&]+)') { $rawPath = [Uri]::UnescapeDataString($Matches[1]) }
-            $cleanPath = ($rawPath -replace ',.*$', '').Trim().Trim('"')
+            $expanded = [Environment]::ExpandEnvironmentVariables($rawPath)
+            $cleanPath = ($expanded -replace ',\s*-?\d+\s*$', '').Trim().Trim('"')
+            if ($cleanPath -match '^([a-zA-Z]:\\[^"]+\.(exe|ico|dll))') { $cleanPath = $Matches[1] }
             if ($cleanPath -and (Test-Path -LiteralPath $cleanPath -PathType Leaf)) {
                 try {
                     Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue
                     $iconDir = Join-Path $settingsDir 'icons'
                     New-Item -ItemType Directory -Path $iconDir -Force | Out-Null
-                    $hash = [BitConverter]::ToString(([System.Security.Cryptography.MD5]::Create()).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($cleanPath))).Replace('-', '')
+                    $hash = [BitConverter]::ToString(([System.Security.Cryptography.MD5]::Create()).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($cleanPath.ToLowerInvariant()))).Replace('-', '')
                     $pngPath = Join-Path $iconDir ($hash + '.png')
                     if (-not (Test-Path -LiteralPath $pngPath)) {
                         $ico = [System.Drawing.Icon]::ExtractAssociatedIcon($cleanPath)

@@ -454,77 +454,85 @@
         <div class="settings-wrap">
           <button class="pill" id="settings-btn" data-i18n="btn.settings">Settings</button>
           <div class="panel" id="settings-panel">
-            <h3 data-i18n="set.title">Settings</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--hair);padding-bottom:12px;margin-bottom:16px">
+              <h3 data-i18n="set.title" style="border:0;margin:0;padding:0">Settings</h3>
+              <span class="badge">v2.0.0 · ESLL</span>
+            </div>
+            <div class="grid-2" style="gap:20px">
+              <div>
+                <div class="set-row">
+                  <label data-i18n="set.lang">Language</label>
+                  <div class="seg" id="seg-lang">
+                    <button data-lang="en">EN</button>
+                    <button data-lang="ru">RU</button>
+                  </div>
+                </div>
 
-            <div class="set-row">
-              <label data-i18n="set.lang">Language</label>
-              <div class="seg" id="seg-lang">
-                <button data-lang="en">EN</button>
-                <button data-lang="ru">RU</button>
+                <div class="set-row">
+                  <label data-i18n="set.days">Default window</label>
+                  <div class="seg" id="seg-days">
+                    <button data-days="7">7</button>
+                    <button data-days="14">14</button>
+                    <button data-days="30">30</button>
+                    <button data-days="90">90</button>
+                  </div>
+                </div>
+
+                <div class="set-row" style="display:block">
+                  <label data-i18n="set.rerun">Auto-repeat</label>
+                  <div class="seg" id="seg-rerun">
+                    <button data-rerun="0" data-i18n="rerun.off">off</button>
+                    <button data-rerun="1" data-i18n="rerun.h1">1 h</button>
+                    <button data-rerun="4" data-i18n="rerun.h4">4 h</button>
+                    <button data-rerun="12" data-i18n="rerun.h12">12 h</button>
+                  </div>
+                  <span class="hintline" data-i18n="set.rerun.hint">Runs the audit again automatically while the window is open.</span>
+                </div>
+
+                <div class="set-row" style="display:block">
+                  <label data-i18n="set.folder">Reports folder</label>
+                  <div class="folder-row">
+                    <input type="text" id="set-out" data-i18n-ph="set.folder.ph" placeholder="default: %LOCALAPPDATA%\WinHealthAudit\reports">
+                    <button class="pill small" id="set-open-folder" data-i18n="set.openfolder">Open</button>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div class="set-row">
-              <label data-i18n="set.days">Default window</label>
-              <div class="seg" id="seg-days">
-                <button data-days="7">7</button>
-                <button data-days="14">14</button>
-                <button data-days="30">30</button>
-                <button data-days="90">90</button>
+              <div>
+                <label class="check">
+                  <input type="checkbox" id="set-autorun">
+                  <span><span data-i18n="set.autorun">Run audit when the window opens</span>
+                    <span class="hintline" data-i18n="set.autorun.hint">A fresh report every time you start the app.</span></span>
+                </label>
+
+                <label class="check">
+                  <input type="checkbox" id="set-startwin">
+                  <span><span data-i18n="set.startwin">Start with Windows</span>
+                    <span class="hintline" data-i18n="set.startwin.hint">Adds one entry for this app in your user startup.</span></span>
+                </label>
+
+                <label class="check">
+                  <input type="checkbox" id="set-notify" checked>
+                  <span><span data-i18n="set.notify">Notify when a run finishes</span>
+                    <span class="hintline" data-i18n="set.notify.hint">A tray balloon with the health score.</span></span>
+                </label>
+
+                <label class="check">
+                  <input type="checkbox" id="set-sounds" checked>
+                  <span><span data-i18n="set.sounds">UI sound effects</span>
+                    <span class="hintline" data-i18n="set.sounds.hint">Subtle audio feedback on clicks and scans.</span></span>
+                </label>
+
+                <div class="set-row" style="display:block" id="hidden-row">
+                  <label data-i18n="set.hidden">Hidden findings</label>
+                  <div class="hidden-list" id="hidden-list"></div>
+                  <button class="pill small" id="hidden-clear" data-i18n="btn.restore">Show all</button>
+                </div>
+
+                <div class="panel-actions">
+                  <button class="pill small" id="set-tutorial" data-i18n="set.tutorial">Show tutorial</button>
+                </div>
               </div>
-            </div>
-
-            <label class="check">
-              <input type="checkbox" id="set-autorun">
-              <span><span data-i18n="set.autorun">Run audit when the window opens</span>
-                <span class="hintline" data-i18n="set.autorun.hint">A fresh report every time you start the app.</span></span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="set-startwin">
-              <span><span data-i18n="set.startwin">Start with Windows</span>
-                <span class="hintline" data-i18n="set.startwin.hint">Adds one entry for this app in your user startup.</span></span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="set-notify" checked>
-              <span><span data-i18n="set.notify">Notify when a run finishes</span>
-                <span class="hintline" data-i18n="set.notify.hint">A tray balloon with the health score.</span></span>
-            </label>
-
-            <label class="check">
-              <input type="checkbox" id="set-sounds" checked>
-              <span><span data-i18n="set.sounds">UI sound effects</span>
-                <span class="hintline" data-i18n="set.sounds.hint">Subtle audio feedback on clicks and scans.</span></span>
-            </label>
-
-            <div class="set-row" style="display:block">
-              <label data-i18n="set.rerun">Auto-repeat</label>
-              <div class="seg" id="seg-rerun">
-                <button data-rerun="0" data-i18n="rerun.off">off</button>
-                <button data-rerun="1" data-i18n="rerun.h1">1 h</button>
-                <button data-rerun="4" data-i18n="rerun.h4">4 h</button>
-                <button data-rerun="12" data-i18n="rerun.h12">12 h</button>
-              </div>
-              <span class="hintline" data-i18n="set.rerun.hint">Runs the audit again automatically while the window is open.</span>
-            </div>
-
-            <div class="set-row" style="display:block" id="hidden-row">
-              <label data-i18n="set.hidden">Hidden findings</label>
-              <div class="hidden-list" id="hidden-list"></div>
-              <button class="pill small" id="hidden-clear" data-i18n="btn.restore">Show all</button>
-            </div>
-
-            <div class="set-row" style="display:block">
-              <label data-i18n="set.folder">Reports folder</label>
-              <div class="folder-row">
-                <input type="text" id="set-out" data-i18n-ph="set.folder.ph" placeholder="default: %LOCALAPPDATA%\WinHealthAudit\reports">
-                <button class="pill small" id="set-open-folder" data-i18n="set.openfolder">Open</button>
-              </div>
-            </div>
-
-            <div class="panel-actions">
-              <button class="pill small" id="set-tutorial" data-i18n="set.tutorial">Show tutorial</button>
             </div>
           </div>
         </div>
@@ -1876,6 +1884,12 @@
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
       e.preventDefault();
       cmdInput.focus();
+    } else if (e.key === "Escape") {
+      settingsPanel.classList.remove("open");
+      elevPop.classList.remove("open");
+      cmdDrop.classList.remove("open");
+      const pm = document.getElementById("prg-detail-modal");
+      if (pm) pm.remove();
     }
   });
   document.addEventListener("click", (e) => {

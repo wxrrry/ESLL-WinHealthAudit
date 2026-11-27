@@ -1,6 +1,7 @@
 function Invoke-systemAction([string]$action, $argsObj) {
     switch ($action) {
         'overview' { return Get-SystemOverview }
+        'overview_counts' { return Get-OverviewCounts }
         'telemetry' { return Get-LiveTelemetry }
         'processes' { return Get-TopProcesses $argsObj }
         'end_process' {
@@ -21,6 +22,23 @@ function Invoke-systemAction([string]$action, $argsObj) {
         'dns_set' { return Set-DnsPreset ([string]$argsObj.preset) }
         default { return [pscustomobject]@{ ok = $false; error = "Unknown action: $action" } }
     }
+}
+
+function Get-OverviewCounts {
+    $progCount = 0
+    try {
+        $paths = @(
+            'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+            'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
+        )
+        $progCount = @(Get-ItemProperty $paths -Name DisplayName -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName }).Count
+    } catch { }
+    $drvCount = 0
+    try {
+        $drvCount = @(Get-CimInstance Win32_PnPSignedDriver -Property DeviceName -ErrorAction SilentlyContinue | Where-Object { $_.DeviceName }).Count
+    } catch { }
+    return [pscustomobject]@{ ok = $true; programs = $progCount; drivers = $drvCount }
 }
 
 function Get-SystemOverview {

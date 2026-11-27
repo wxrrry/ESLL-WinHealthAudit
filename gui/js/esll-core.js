@@ -1,7 +1,23 @@
 window.WHA = (function () {
   const modules = {};
+  const cache = {};
   let currentMod = 'audit';
   let activeJobTimer = null;
+
+  function toast(msg) {
+    if (!msg) return;
+    let box = document.getElementById('wha-toast');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'wha-toast';
+      box.className = 'wha-toast';
+      document.body.appendChild(box);
+    }
+    box.textContent = msg;
+    box.classList.add('show');
+    clearTimeout(box._t);
+    box._t = setTimeout(function () { box.classList.remove('show'); }, 2600);
+  }
 
   function lang() {
     return window.WHA_LANG === 'ru' ? 'ru' : 'en';
@@ -119,6 +135,8 @@ window.WHA = (function () {
     fmtBytes: fmtBytes,
     api: api,
     runJob: runJob,
+    cache: cache,
+    toast: toast,
     registerModule: registerModule,
     switchModule: switchModule,
     refreshActiveModule: refreshActiveModule

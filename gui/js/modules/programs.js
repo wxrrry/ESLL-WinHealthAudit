@@ -30,11 +30,13 @@
       body.innerHTML = `<div class="esll-meta">${t('Loading...', 'Загрузка...')}</div>`;
 
       if (tab === 'rem') {
-        const res = await api('programs', 'installed');
+        const res = WHA.cache.programs || await api('programs', 'installed');
+        WHA.cache.programs = res;
         const items = res.items || [];
         body.innerHTML = `
           <div class="findbar" style="padding:0 0 12px">
             <input class="find-input" id="prg-q" placeholder="${t('Search installed programs...', 'Поиск программ...')}">
+            <button class="pill small" id="prg-refresh">${t('Refresh', 'Обновить')}</button>
             <div class="find-count" id="prg-cnt">${items.length}</div>
           </div>
           <div id="prg-leftovers" class="esll-card hidden" style="margin-bottom:14px"></div>
@@ -48,22 +50,26 @@
           body.querySelector('#prg-cnt').textContent = fl.length;
           body.querySelector('#prg-rows').innerHTML = fl.slice(0, 150).map((p, idx) => {
             const letter = esc((p.name || '?').trim().charAt(0).toUpperCase());
-            const iconHtml = p.icon
-              ? `<img src="/api/app-icon?p=${encodeURIComponent(p.icon)}" alt="" style="width:20px;height:20px;object-fit:contain;border-radius:4px;vertical-align:middle;margin-right:8px" onerror="this.style.display='none'">`
-              : `<span style="display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;border:1px solid var(--hair);border-radius:4px;font-size:10px;margin-right:8px;color:var(--dim)">${letter}</span>`;
+            const imgTag = p.icon
+              ? `<img src="/api/app-icon?p=${encodeURIComponent(p.icon)}" alt="" onload="this.style.opacity=1" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .15s;background:#0a0a0a;border-radius:5px">`
+              : '';
+            const iconHtml = `<span style="position:relative;display:inline-flex;width:24px;height:24px;align-items:center;justify-content:center;border:1px solid var(--hair);border-radius:5px;font-size:10px;margin-right:10px;color:var(--dim);vertical-align:middle;flex-shrink:0;overflow:hidden">${letter}${imgTag}</span>`;
             return `
-            <tr>
-              <td>${iconHtml}${esc(p.name)}</td>
+            <tr data-pidx="${idx}" style="cursor:pointer">
+              <td><div style="display:flex;align-items:center">${iconHtml}<span>${esc(p.name)}</span></div></td>
               <td>${esc(p.publisher)}</td>
               <td class="mono">${esc(p.version)}</td>
               <td class="mono">${p.sizeMB ? p.sizeMB + ' MB' : '—'}</td>
-              <td style="text-align:right;white-space:nowrap">
+              <td style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
                 <button class="hidebtn" data-left="${idx}">${t('Leftovers', 'Остатки')}</button>
                 <button class="hidebtn" data-uninst="${idx}">${t('Uninstall', 'Удалить')}</button>
               </td>
             </tr>`;
           }).join('');
 
+          body.querySelectorAll('[data-pidx]').forEach(tr => {
+            tr.onclick = () => openProgramModal(fl[Number(tr.getAttribute('data-pidx'))]);
+          });
           body.querySelectorAll('[data-uninst]').forEach(b => {
             b.onclick = async () => {
               const p = fl[Number(b.getAttribute('data-uninst'))];
@@ -79,6 +85,64 @@
               showLeftovers(p.name, left.items || []);
             };
           });
+        };
+
+        function openProgramModal(p) {
+          if (!p) return;
+          const old = document.getElementById('prg-detail-modal');
+          if (old) old.remove();
+          const modal = document.createElement('div');
+          modal.id = 'prg-detail-modal';
+          modal.className = 'wha-modal-back';
+          const letter = esc((p.name || '?').trim().charAt(0).toUpperCase());
+          const imgTag = p.icon
+            ? `<img src="/api/app-icon?p=${encodeURIComponent(p.icon)}" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a0a0a;border-radius:10px">`
+            : '';
+          modal.innerHTML = `
+            <div class="wha-modal">
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+                <div style="position:relative;width:44px;height:44px;border-radius:10px;border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${letter}${imgTag}</div>
+                <div style="min-width:0;flex:1">
+                  <div style="font-size:18px;font-weight:300">${esc(p.name)}</div>
+                  <div class="esll-meta">${esc(p.publisher || '—')} · v${esc(p.version || '—')}</div>
+                </div>
+                <button class="pill small" id="pm-close">✕</button>
+              </div>
+              <div class="dline"><div class="dk">${t('Install path', 'Путь установки')}</div><div class="dv mono">${esc(p.installLocation || '—')}</div></div>
+              <div class="dline"><div class="dk">${t('Size / Date', 'Размер / Дата')}</div><div class="dv mono">${p.sizeMB ? p.sizeMB + ' MB' : '—'} · ${esc(p.installDate || '—')}</div></div>
+              <div class="dline"><div class="dk">${t('Icon source', 'Источник иконки')}</div><div class="dv mono">${esc(p.icon || '—')}</div></div>
+              <div class="dline"><div class="dk">${t('Uninstall cmd', 'Команда удаления')}</div><div class="dv mono" style="word-break:break-all">${esc(p.uninstall || '—')}</div></div>
+              <div class="mod-actions" style="margin-top:18px">
+                ${p.installLocation ? `<button class="pill small" id="pm-open">${t('Open Folder', 'Открыть папку')}</button>` : ''}
+                <button class="pill small" id="pm-left">${t('Scan Leftovers', 'Найти остатки')}</button>
+                <button class="pill small solid" id="pm-uninst">${t('Uninstall', 'Удалить')}</button>
+                ${p.quietUninstall ? `<button class="pill small" id="pm-quiet">${t('Silent Uninstall', 'Тихое удаление')}</button>` : ''}
+              </div>
+            </div>`;
+          document.body.appendChild(modal);
+          modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+          modal.querySelector('#pm-close').onclick = () => modal.remove();
+          const openBtn = modal.querySelector('#pm-open');
+          if (openBtn) openBtn.onclick = () => api('system', 'open_location', { path: p.installLocation });
+          modal.querySelector('#pm-left').onclick = async () => {
+            modal.remove();
+            const left = await api('programs', 'leftovers', { name: p.name, publisher: p.publisher });
+            showLeftovers(p.name, left.items || []);
+          };
+          modal.querySelector('#pm-uninst').onclick = async () => {
+            modal.remove();
+            await api('programs', 'uninstall', { uninstall: p.uninstall, quietUninstall: p.quietUninstall, silent: false });
+          };
+          const qBtn = modal.querySelector('#pm-quiet');
+          if (qBtn) qBtn.onclick = async () => {
+            modal.remove();
+            await api('programs', 'uninstall', { uninstall: p.uninstall, quietUninstall: p.quietUninstall, silent: true });
+          };
+        }
+
+        body.querySelector('#prg-refresh').onclick = async () => {
+          delete WHA.cache.programs;
+          loadTab('rem');
         };
 
         function showLeftovers(appName, litems) {

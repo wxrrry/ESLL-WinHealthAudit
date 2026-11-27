@@ -33,9 +33,15 @@ function Get-InstalledPrograms {
             $seen[$key] = $true
             $sizeMB = if ($_.EstimatedSize) { [math]::Round($_.EstimatedSize / 1024.0, 1) } else { 0 }
             $iconPath = [string]$_.DisplayIcon
-            if (-not $iconPath -and $_.InstallLocation) {
+            if (-not $iconPath -and $_.InstallLocation -and (Test-Path -LiteralPath $_.InstallLocation)) {
                 $exe = Get-ChildItem -Path $_.InstallLocation -Filter '*.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
                 if ($exe) { $iconPath = $exe.FullName }
+            }
+            if (-not $iconPath -and $_.UninstallString) {
+                $u = [string]$_.UninstallString
+                if ($u -match '^"([^"]+\.exe)"' -or $u -match '^([a-zA-Z]:\\[^\s"]+\.exe)') {
+                    if ($Matches[1] -notmatch 'msiexec\.exe') { $iconPath = $Matches[1] }
+                }
             }
             $list += [pscustomobject]@{
                 name = $_.DisplayName
