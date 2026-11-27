@@ -468,16 +468,6 @@
                   </div>
                 </div>
 
-                <div class="set-row">
-                  <label data-i18n="set.days">Default window</label>
-                  <div class="seg" id="seg-days">
-                    <button data-days="7">7</button>
-                    <button data-days="14">14</button>
-                    <button data-days="30">30</button>
-                    <button data-days="90">90</button>
-                  </div>
-                </div>
-
                 <div class="set-row" style="display:block">
                   <label data-i18n="set.rerun">Auto-repeat</label>
                   <div class="seg" id="seg-rerun">
@@ -547,16 +537,6 @@
             </div>
           </div>
         </div>
-        <div class="days-wrap">
-          <button class="pill" id="days">14 d <span class="chevron">▾</span></button>
-          <div class="menu" id="days-menu">
-            <button data-days="7">7 days</button>
-            <button data-days="14">14 days</button>
-            <button data-days="30">30 days</button>
-            <button data-days="90">90 days</button>
-          </div>
-        </div>
-        <button class="pill solid" id="run" data-i18n="btn.run">Run audit</button>
       </div>
     </header>
 
@@ -574,12 +554,24 @@
       <button class="mod-btn" data-mod="automation" data-en="Automation" data-ru="Задачи">Automation</button>
     </nav>
 
-    <section class="stats">
+    <section class="stats" style="align-items:center">
       <div class="stat"><div class="value" id="n-health">–</div><div class="label" data-i18n="stat.health">Health</div></div>
       <div class="stat"><div class="value" id="n-critical">–</div><div class="label" data-i18n="sev.critical">Critical</div></div>
       <div class="stat"><div class="value" id="n-warning">–</div><div class="label" data-i18n="sev.warning">Warning</div></div>
       <div class="stat dim"><div class="value" id="n-info">–</div><div class="label" data-i18n="sev.info">Info</div></div>
       <div class="stat"><div class="value" id="n-seconds">–</div><div class="label" data-i18n="stat.runtime">Run time</div></div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <div class="days-wrap">
+          <button class="pill" id="days">14 d <span class="chevron">▾</span></button>
+          <div class="menu" id="days-menu">
+            <button data-days="7">7 days</button>
+            <button data-days="14">14 days</button>
+            <button data-days="30">30 days</button>
+            <button data-days="90">90 days</button>
+          </div>
+        </div>
+        <button class="pill solid" id="run" data-i18n="btn.run">Run audit</button>
+      </div>
     </section>
 
     <div class="bar">
@@ -1890,6 +1882,8 @@
       cmdDrop.classList.remove("open");
       const pm = document.getElementById("prg-detail-modal");
       if (pm) pm.remove();
+      const cm = document.getElementById("ov-comp-modal");
+      if (cm) cm.remove();
     }
   });
   document.addEventListener("click", (e) => {

@@ -13,7 +13,12 @@
         </div>
       </div>
 
-      <div class="grid-4" id="aut-kpis" style="margin-bottom:16px"></div>
+      <div class="grid-4" id="aut-kpis" style="margin-bottom:16px">
+        <div class="esll-card" style="animation:none"><h4>${t('Scheduled Tasks', 'Задачи')}</h4><div class="esll-big" id="ak-t">–</div><div class="esll-meta">${t('Active in Task Scheduler', 'В планировщике Windows')}</div></div>
+        <div class="esll-card" style="animation:none"><h4>${t('Restore Points', 'Точки восст.')}</h4><div class="esll-big" id="ak-r">–</div><div class="esll-meta">${t('Windows VSS snapshots', 'Снимки системы VSS')}</div></div>
+        <div class="esll-card" style="animation:none"><h4>${t('Driver Backups', 'Бэкапы драйверов')}</h4><div class="esll-big" id="ak-d">–</div><div class="esll-meta">${t('Exported INF packages', 'Экспортированные пакеты')}</div></div>
+        <div class="esll-card" style="animation:none"><h4>${t('Quarantine', 'Карантин')}</h4><div class="esll-big" id="ak-q">–</div><div class="esll-meta">${t('Restorable leftovers', 'Восстановимые остатки')}</div></div>
+      </div>
 
       <div class="grid-2" style="margin-bottom:16px">
         <div class="esll-card">
@@ -70,12 +75,10 @@
       const drvs = baks.driverBackups || [];
       const quars = baks.quarantine || [];
 
-      root.querySelector('#aut-kpis').innerHTML = `
-        <div class="esll-card"><h4>${t('Scheduled Tasks', 'Задачи')}</h4><div class="esll-big">${tItems.length}</div><div class="esll-meta">${t('Active in Task Scheduler', 'В планировщике Windows')}</div></div>
-        <div class="esll-card"><h4>${t('Restore Points', 'Точки восст.')}</h4><div class="esll-big">${rps.length}</div><div class="esll-meta">${t('Windows VSS snapshots', 'Снимки системы VSS')}</div></div>
-        <div class="esll-card"><h4>${t('Driver Backups', 'Бэкапы драйверов')}</h4><div class="esll-big">${drvs.length}</div><div class="esll-meta">${t('Exported INF packages', 'Экспортированные пакеты')}</div></div>
-        <div class="esll-card"><h4>${t('Quarantine', 'Карантин')}</h4><div class="esll-big">${quars.length}</div><div class="esll-meta">${t('Restorable leftovers', 'Восстановимые остатки')}</div></div>
-      `;
+      root.querySelector('#ak-t').textContent = tItems.length;
+      root.querySelector('#ak-r').textContent = rps.length;
+      root.querySelector('#ak-d').textContent = drvs.length;
+      root.querySelector('#ak-q').textContent = quars.length;
 
       const tEl = root.querySelector('#aut-tasks');
       tEl.innerHTML = tItems.length ? `<table class="esll-table"><thead><tr><th>${t('Name', 'Имя')}</th><th>${t('State', 'Статус')}</th><th>${t('Next Run', 'След. запуск')}</th><th></th></tr></thead><tbody>${
