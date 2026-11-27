@@ -16,7 +16,7 @@ namespace WinHealthAudit.Window
 {
     internal static class Launcher
     {
-        private const int Port = 8777;
+        private static int _port = 8777;
         private static string _webviewDir;
         private static Process _serverProc;
 
@@ -83,10 +83,14 @@ namespace WinHealthAudit.Window
 
             var engine = ExtractEngine(appRoot) ?? FindEngine(dir);
 
-            if (!PageUp() || IsElevated())
+            if (!PageUp(_port) || IsElevated())
             {
-                StartServer(script, engine, exePath);
-                WaitForServer();
+                if (!IsPortFree(_port) && !IsElevated())
+                {
+                    _port = FindFreePort();
+                }
+                StartServer(script, engine, exePath, _port);
+                WaitForServer(_port);
             }
 
             OpenStandaloneWindow(appRoot);
@@ -94,7 +98,7 @@ namespace WinHealthAudit.Window
 
         private static void OpenStandaloneWindow(string appRoot)
         {
-            var url = "http://127.0.0.1:" + Port + "/";
+            var url = "http://127.0.0.1:" + _port + "/";
             try
             {
                 var form = new Form
@@ -276,13 +280,34 @@ namespace WinHealthAudit.Window
             return true;
         }
 
-        private static void StartServer(string script, string engine, string exePath)
+        private static bool IsPortFree(int port)
+        {
+            try
+            {
+                var l = new System.Net.Sockets.TcpListener(IPAddress.Loopback, port);
+                l.Start();
+                l.Stop();
+                return true;
+            }
+            catch { return false; }
+        }
+
+        private static int FindFreePort()
+        {
+            var l = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+            l.Start();
+            int p = ((IPEndPoint)l.LocalEndpoint).Port;
+            l.Stop();
+            return p;
+        }
+
+        private static void StartServer(string script, string engine, string exePath, int port)
         {
             var info = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
                 Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + script +
-                            "\" -NoBrowser -Port " + Port +
+                            "\" -NoBrowser -Port " + port +
                             " -Engine \"" + engine + "\"" +
                             " -Launcher \"" + exePath + "\"",
                 UseShellExecute = false,
@@ -291,11 +316,11 @@ namespace WinHealthAudit.Window
             _serverProc = Process.Start(info);
         }
 
-        private static bool PageUp()
+        private static bool PageUp(int port)
         {
             try
             {
-                var request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + Port + "/");
+                var request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + port + "/");
                 request.Timeout = 900;
                 request.Proxy = null;
                 using (var response = (HttpWebResponse)request.GetResponse())
@@ -310,14 +335,14 @@ namespace WinHealthAudit.Window
             catch { return false; }
         }
 
-        private static void WaitForServer()
+        private static void WaitForServer(int port)
         {
             for (var attempt = 0; attempt < 80; attempt++)
             {
-                if (PageUp()) return;
+                if (PageUp(port)) return;
                 Thread.Sleep(250);
             }
-            throw new InvalidOperationException("The local server did not start on port " + Port);
+            throw new InvalidOperationException("The local server did not start on port " + port);
         }
     }
 }
