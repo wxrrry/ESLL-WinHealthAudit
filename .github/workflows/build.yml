@@ -49,7 +49,7 @@ jobs:
         run: |
           $tag  = $env:GITHUB_REF_NAME
           $title = "WinHealthAudit $($tag -replace '^v','')"
-          $assets = 'bin/WinHealthAudit.exe', 'bin/WinHealthAudit.Core.exe'
+          $assets = 'bin/WinHealthAudit-Setup.exe'
           $notes = "docs/release-notes/$tag.md"
 
           gh release view $tag 2>$null | Out-Null
